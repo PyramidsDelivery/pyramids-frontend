@@ -1,6 +1,7 @@
 <script setup>
 import { useRouter } from 'vue-router'
 import logo from '../assets/logo.png'
+import LightButton from '../components/LightButton.vue'
 
 const router = useRouter()
 
@@ -20,9 +21,8 @@ function irParaLogin() {
         <h1>Já tem uma conta?</h1>
         <p>Faça Login.</p>
 
-        <button class="btn-login-left" @click="irParaLogin">
-          Login
-        </button>
+        <!-- TROCA AQUI -->
+        <LightButton label="Login" @click="irParaLogin" />
       </div>
     </div>
 
@@ -36,11 +36,11 @@ function irParaLogin() {
       <input type="password" placeholder="Senha" />
       <input type="password" placeholder="Confirmar Senha" />
 
-      <button class="btn-cadastrar">Cadastrar</button>
+      <button class="btn-light">Cadastrar</button>
     </div>
   </div>
 </template>
 
 <style scoped>
-
+/* mantém vazio como você deixou */
 </style>
