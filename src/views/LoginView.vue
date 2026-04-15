@@ -134,12 +134,18 @@ function irParaCadastro() {
     font-size: 1.2rem;
     color: var(--color-dark);
 }
+.right .inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+}
 .right input {
   background-color: var(--color-input-bg);
   color: var(--color-input-txt);
   width: 100%;
   padding: 12px 10px;
-  margin: 10px 0;
+  
   border: 2px solid var(--color-light);
   border-radius: 16px;
   transition: border-color 0.3s ease;
@@ -153,4 +159,30 @@ input:-webkit-autofill {
   -webkit-box-shadow: 0 0 0 1000px var(--color-input-bg) inset;
   -webkit-text-fill-color: var(--color-input-txt);
 }
+@media (min-width: 1440px) {
+  .container {
+    max-width: 2000px;
+    margin: 0 auto;
+  }
+
+  .left-content,
+  .right-content {
+    padding: 200px 0;
+    max-width: 700px;
+  }
+  .left h1,
+  .right h1 {
+    font-size: 3.2rem;
+  }
+  .right p,
+  .left p {
+    font-size: 1.4rem;
+  }
+  .right input {
+    margin-top: 20px;
+    padding: 14px 18px;
+    font-size: 16px;
+  }
+}
+
 </style>
