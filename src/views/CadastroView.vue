@@ -2,6 +2,7 @@
 import { useRouter } from 'vue-router'
 import logo from '../assets/logo.png'
 import LightButton from '../components/LightButton.vue'
+import DarkButton from '../components/DarkButton.vue'
 
 const router = useRouter()
 
@@ -14,33 +15,143 @@ function irParaLogin() {
   <div class="container">
     <!-- LADO ESQUERDO -->
     <div class="left">
-      <!-- LOGO -->
-      <img :src="logo" alt="logo" class="logo" />
-
       <div class="left-content">
-        <h1>Já tem uma conta?</h1>
-        <p>Faça Login.</p>
+        <img :src="logo" alt="Logo" />
 
-        <!-- TROCA AQUI -->
+        <div class="left-text">
+          <h1>Já tem uma conta?</h1>
+          <p>Faça login.</p>
+        </div>
+
         <LightButton label="Login" @click="irParaLogin" />
       </div>
     </div>
 
     <!-- LADO DIREITO -->
     <div class="right">
-      <h1>Crie sua conta!</h1>
-      <p>Preencha seus dados</p>
+      <div class="right-content">
 
-      <input type="text" placeholder="Nome" />
-      <input type="email" placeholder="Email" />
-      <input type="password" placeholder="Senha" />
-      <input type="password" placeholder="Confirmar Senha" />
+        <div class="right-text">
+          <h1>Crie sua conta!</h1>
+          <p>Preencha seus dados</p>
+        </div>
 
-      <button class="btn-light">Cadastrar</button>
+        <div class="inputs">
+          <input type="text" placeholder="Nome" />
+          <input type="email" placeholder="Email" />
+          <input type="password" placeholder="Senha" />
+          <input type="password" placeholder="Confirmar senha" />
+        </div>
+
+        <DarkButton label="Cadastrar" />
+
+      </div>
     </div>
   </div>
 </template>
 
+
 <style scoped>
-/* mantém vazio como você deixou */
+*{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+.container {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+}
+.logo {
+  width: 150px;
+}
+.container .left {
+  background-color: var(--color-dark);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 40%;
+  color: var(--color-light);
+  justify-content: center;
+}
+.left h1{
+    margin: 0;
+    font-weight: bold;
+    line-height: 3rem;
+    font-size: 3rem;
+}
+.left p{
+    font-size: 1.2rem;
+    color: var(--color-light);
+}
+.left-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  height: 100%;
+  padding: 100px 0;
+  width: 50%;
+  
+
+}
+.left-content .left-text {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    
+}
+.container .right {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 60%;
+  background-color: var(--color-light);
+  color: var(--color-dark);
+}
+.right-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  height: 100%;
+  width: 60%;
+  padding: 100px 0;
+}
+
+.right-text {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+.right h1{
+    font-weight: bold;
+    line-height: 3rem;
+    font-size: 3rem;
+}
+.right p{
+    font-size: 1.2rem;
+    color: var(--color-dark);
+}
+.right input {
+  background-color: var(--color-input-bg);
+  color: var(--color-input-txt);
+  width: 100%;
+  padding: 12px 10px;
+  margin: 10px 0;
+  border: 2px solid var(--color-light);
+  border-radius: 16px;
+  transition: border-color 0.3s ease;
+}
+.right input:focus {
+  border-color: var(--color-dark);
+  border: 2px solid var(--color-dark);
+  outline: none;
+}
+input:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px var(--color-input-bg) inset;
+  -webkit-text-fill-color: var(--color-input-txt);
+}
 </style>
