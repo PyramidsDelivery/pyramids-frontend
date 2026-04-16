@@ -7,9 +7,12 @@ body {
   /* cores principais */
   --color-dark: #1B1B1B;
   --color-light: #F2F2F2;
+  --color-dark-hover: #333333;
+  --color-light-hover: #E0E0E0;
 
   /* inputs */
   --color-input-bg: #E0E0E0;
   --color-input-border: #1B1B1B;
+  --color-input-txt: #676767;
 
 }
