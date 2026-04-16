@@ -48,6 +48,31 @@ function irParaLogin() {
       </div>
     </div>
   </div>
+  <div class="mobile">
+  <div class="top">
+    <img :src="logo" alt="Logo" />
+  </div>
+
+  <div class="mobile-content">
+    <div class="right-text">
+      <h1>Crie sua conta!</h1>
+      <p>Preencha seus dados</p>
+    </div>
+
+    <div class="inputs">
+      <input type="text" placeholder="Nome" />
+      <input type="email" placeholder="Email" />
+      <input type="password" placeholder="Senha" />
+      <input type="password" placeholder="Confirmar senha" />
+    </div>
+
+    <DarkButton label="Cadastrar" />
+
+    <p class="mobile-link">
+      <span @click="irParaLogin">Já tem uma conta? Faça login.</span>
+    </p>
+  </div>
+</div>
 </template>
 
 
@@ -177,6 +202,91 @@ input:-webkit-autofill {
     margin-top: 20px;
     padding: 14px 18px;
     font-size: 16px;
+  }
+}
+.mobile {
+  display: none;
+}
+
+@media (max-width: 768px) {
+
+  .container {
+    display: none;
+  }
+
+  .mobile {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background: #e9e9e9;
+  }
+
+  .mobile .right-text {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .mobile .right-text h1 {
+    font-size: 2rem;
+    text-align: center;
+  }
+
+  .mobile .right-text p {
+    font-size: 1rem;
+    text-align: center;
+    font-weight: 500;
+  }
+
+  .top {
+    height: 180px;
+    background: var(--color-dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .top img {
+    width: 120px;
+  }
+
+  .mobile-content {
+    flex: 1;
+    padding: 60px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 50px;
+  }
+
+  .mobile .inputs {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+  }
+
+  .mobile input {
+    background: #dcdcdc;
+    border: none;
+    border-radius: 20px;
+    padding: 16px 14px;
+    width: 100%;
+  }
+
+  :deep(.btn-dark) {
+    width: 100%;
+    border-radius: 30px;
+  }
+
+  .mobile-link {
+    margin-top: auto;
+    text-align: center;
+    font-size: 1rem;
+  }
+
+  .mobile-link span {
+    text-decoration: underline;
+    cursor: pointer;
   }
 }
 </style>
