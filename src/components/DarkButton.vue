@@ -22,15 +22,26 @@ defineProps({
   border: none;
   width: 100%;
   transition: background-color 0.3s ease, transform 0.1s ease;
+
+  /* 🔥 melhora comportamento no mobile */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
+/* hover (desktop) */
 .btn-dark:hover {
   background-color: var(--color-dark-hover);
 }
 
 /* efeito de clique */
 .btn-dark:active {
-  transform: scale(0.97);
+  transform: scale(0.96);
 }
 
+/* 🔥 garante funcionamento em touch devices */
+@media (hover: none) {
+  .btn-dark:active {
+    transform: scale(0.96);
+  }
+}
 </style>
