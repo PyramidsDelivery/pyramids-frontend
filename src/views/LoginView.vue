@@ -1,33 +1,33 @@
 <script setup>
-import { ref } from 'vue';
-import { useAuthStore } from '../stores/auth'; // Sua store ajustada para e-mail
-import { useRouter } from 'vue-router';    // Importe o roteador
-import logo from '../assets/logo.png' 
-import LightButton from '../components/LightButton.vue' 
-import DarkButton from '../components/DarkButton.vue' 
-import BaseInput from '../components/BaseInput.vue'
+import { ref } from "vue";
+import { useAuthStore } from "../stores/auth"; // Sua store ajustada para e-mail
+import { useRouter } from "vue-router"; // Importe o roteador
+import logo from "../assets/logo.png";
+import LightButton from "../components/LightButton.vue";
+import DarkButton from "../components/DarkButton.vue";
+import BaseInput from "../components/BaseInput.vue";
 
 const authStore = useAuthStore();
 const router = useRouter(); // Inicializa o roteador
-const email = ref('');
-const password = ref('');
-const mensagemErro = ref('');
+const email = ref("");
+const password = ref("");
+const mensagemErro = ref("");
 const carregando = ref(false);
-  
 
-function irParaCadastro() {   router.push('/cadastro') }
-
+function irParaCadastro() {
+  router.push("/cadastro");
+}
 
 const handleLogin = async () => {
   carregando.value = true;
-  mensagemErro.value = '';
+  mensagemErro.value = "";
 
   // Chama a action que configuramos no auth.js
   const resultado = await authStore.login(email.value, password.value);
 
   if (resultado.success) {
     // ESTA É A LINHA QUE FAZ O REDIRECIONAMENTO
-    router.push({ name: 'fretesadm' });
+    router.push({ name: "fretesadm" });
   } else {
     // Caso o Django retorne erro (senha errada, user não existe, etc)
     mensagemErro.value = resultado.message;
@@ -59,16 +59,21 @@ const handleLogin = async () => {
         </div>
 
         <div class="inputs">
-        <BaseInput type="email" placeholder="Email" v-model="email" />
-        <BaseInput type="password" placeholder="Senha" v-model="password" />
+          <BaseInput type="email" placeholder="Email" v-model="email" />
+          <BaseInput type="password" placeholder="Senha" v-model="password" />
         </div>
+        <DarkButton
+          :label="carregando ? 'Entrando...' : 'Entrar'"
+          @click="handleLogin"
+        />
 
-        <DarkButton :label="carregando ? 'Entrando...' : 'Entrar'" @click="handleLogin" />
-        <p v-if="mensagemErro" style="color: red; margin-top: 10px;">{{ mensagemErro }}</p>
+        <p v-if="mensagemErro" style="color: red; margin-top: 10px">
+          {{ mensagemErro }}
+        </p>
       </div>
     </div>
   </div>
-  
+
   <div class="mobile">
     <div class="top">
       <img :src="logo" alt="Logo" />
@@ -84,12 +89,21 @@ const handleLogin = async () => {
         <BaseInput type="email" placeholder="Email" v-model="email" />
         <BaseInput type="password" placeholder="Senha" v-model="password" />
       </div>
+      <DarkButton
+        :label="carregando ? 'Entrando...' : 'Entrar'"
+        @click="handleLogin"
+      />
 
-      <DarkButton :label="carregando ? 'Entrando...' : 'Entrar'" @click="handleLogin" />
+      <DarkButton
+        :label="carregando ? 'Entrando...' : 'Entrar'"
+        @click="handleLogin"
+      />
       <p class="mobile-link">
         <span @click="irParaCadastro"> Não tem uma conta? Cadastre-se.</span>
       </p>
-      <p v-if="mensagemErro" style="color: red; margin-top: 10px;">{{ mensagemErro }}</p>
+      <p v-if="mensagemErro" style="color: red; margin-top: 10px">
+        {{ mensagemErro }}
+      </p>
     </div>
   </div>
 </template>

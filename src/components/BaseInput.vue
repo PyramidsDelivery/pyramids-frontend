@@ -1,25 +1,21 @@
 <script setup>
 defineProps({
   modelValue: String,
-  type: {
-    type: String,
-    default: 'text'
-  },
-  placeholder: String
-})
-
-const emit = defineEmits(['update:modelValue'])
+  placeholder: String,
+  type: { type: String, default: 'text' }
+});
+defineEmits(['update:modelValue']);
 </script>
 
 <template>
-  <input
-    :type="type"
-    :placeholder="placeholder"
-    :value="modelValue"
+  <input 
+    :type="type" 
+    :placeholder="placeholder" 
+    :value="modelValue" 
     @input="$emit('update:modelValue', $event.target.value)"
     class="base-input"
   />
-</template>
+</template> 
 
 <style scoped>
 .base-input {
