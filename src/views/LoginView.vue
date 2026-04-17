@@ -1,24 +1,45 @@
 <script setup>
-import { useRouter } from 'vue-router'
-import logo from '../assets/logo.png'
-import LightButton from '../components/LightButton.vue'
-import DarkButton from '../components/DarkButton.vue'
+import { ref } from 'vue';
+import { useAuthStore } from '../stores/auth'; // Sua store ajustada para e-mail
+import { useRouter } from 'vue-router';    // Importe o roteador
+import logo from '../assets/logo.png' 
+import LightButton from '../components/LightButton.vue' 
+import DarkButton from '../components/DarkButton.vue' 
 import BaseInput from '../components/BaseInput.vue'
 
-const router = useRouter()
+const authStore = useAuthStore();
+const router = useRouter(); // Inicializa o roteador
+const email = ref('');
+const password = ref('');
+const mensagemErro = ref('');
+const carregando = ref(false);
+  
 
-function irParaCadastro() {
-  router.push('/cadastro')
-}
+function irParaCadastro() {   router.push('/cadastro') }
+
+
+const handleLogin = async () => {
+  carregando.value = true;
+  mensagemErro.value = '';
+
+  // Chama a action que configuramos no auth.js
+  const resultado = await authStore.login(email.value, password.value);
+
+  if (resultado.success) {
+    // ESTA É A LINHA QUE FAZ O REDIRECIONAMENTO
+    router.push({ name: 'fretesadm' });
+  } else {
+    // Caso o Django retorne erro (senha errada, user não existe, etc)
+    mensagemErro.value = resultado.message;
+  }
+
+  carregando.value = false;
+};
 </script>
 
 <template>
   <div class="container">
-    <!-- LADO ESQUERDO -->
     <div class="left">
-      <!-- LOGO -->
-
-
       <div class="left-content">
         <img :src="logo" alt="Logo" />
         <div class="left-text">
@@ -26,12 +47,10 @@ function irParaCadastro() {
           <p>Cadastre-se.</p>
         </div>
 
-        <!-- TROCA AQUI -->
         <LightButton label="Cadastro" @click="irParaCadastro" />
       </div>
     </div>
 
-    <!-- LADO DIREITO -->
     <div class="right">
       <div class="right-content">
         <div class="right-text">
@@ -40,15 +59,16 @@ function irParaCadastro() {
         </div>
 
         <div class="inputs">
-          <BaseInput placeholder="Nome" />
-          <BaseInput type="email" placeholder="Email" />
-          <BaseInput type="password" placeholder="Senha" />
+        <BaseInput type="email" placeholder="Email" v-model="email" />
+        <BaseInput type="password" placeholder="Senha" v-model="password" />
         </div>
 
-        <DarkButton label="Entrar" />
+        <DarkButton :label="carregando ? 'Entrando...' : 'Entrar'" @click="handleLogin" />
+        <p v-if="mensagemErro" style="color: red; margin-top: 10px;">{{ mensagemErro }}</p>
       </div>
     </div>
   </div>
+  
   <div class="mobile">
     <div class="top">
       <img :src="logo" alt="Logo" />
@@ -61,15 +81,15 @@ function irParaCadastro() {
       </div>
 
       <div class="inputs">
-        <BaseInput placeholder="Nome" />
-        <BaseInput type="email" placeholder="Email" />
-        <BaseInput type="password" placeholder="Senha" />
+        <BaseInput type="email" placeholder="Email" v-model="email" />
+        <BaseInput type="password" placeholder="Senha" v-model="password" />
       </div>
 
-      <DarkButton label="Entrar" />
+      <DarkButton :label="carregando ? 'Entrando...' : 'Entrar'" @click="handleLogin" />
       <p class="mobile-link">
         <span @click="irParaCadastro"> Não tem uma conta? Cadastre-se.</span>
       </p>
+      <p v-if="mensagemErro" style="color: red; margin-top: 10px;">{{ mensagemErro }}</p>
     </div>
   </div>
 </template>
@@ -121,15 +141,12 @@ function irParaCadastro() {
   height: 100%;
   padding: 100px 0;
   width: 50%;
-
-
 }
 
 .left-content .left-text {
   display: flex;
   flex-direction: column;
   gap: 10px;
-
 }
 
 .container .right {
@@ -176,7 +193,6 @@ function irParaCadastro() {
   gap: 20px;
   width: 100%;
 }
-
 
 @media (min-width: 1440px) {
   .container {
@@ -249,7 +265,6 @@ function irParaCadastro() {
 }
 
 @media (max-width: 768px) {
-
   .container {
     display: none;
     /* esconde desktop */
@@ -298,9 +313,8 @@ function irParaCadastro() {
     display: flex;
     flex-direction: column;
     gap: 50px;
-
   }
-.mobile .right-text {
+  .mobile .right-text {
     margin-bottom: 10px;
   }
   .mobile .inputs {
@@ -308,19 +322,19 @@ function irParaCadastro() {
     flex-direction: column;
     gap: 25px;
   }
- .mobile input {
+  .mobile input {
     background: #dcdcdc;
     border: 2px solid var(--color-input-bg);
     border-radius: 20px;
     padding: 16px 14px;
     width: 100%;
-  } 
+  }
 
-.mobile input:focus {
-  border-color: var(--color-dark);
-  outline: none;
-  color: var(--color-dark);
-}
+  .mobile input:focus {
+    border-color: var(--color-dark);
+    outline: none;
+    color: var(--color-dark);
+  }
 
   /* joga o link pro final */
   .mobile-link {
