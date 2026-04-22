@@ -8,5 +8,9 @@ const api = axios.create({
     'Accept': 'application/json',
   }
 });
+const token = localStorage.getItem('token');
+if (token) {
+  api.defaults.headers.common['Authorization'] = `Token ${token}`;
+}
 
 export default api;
