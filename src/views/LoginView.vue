@@ -1,11 +1,26 @@
 <script setup>
+import { ref } from 'vue' // Adicionado
 import { useRouter } from 'vue-router'
+import { useDataStore } from '../stores/useDataStore' // Adicionado
 import logo from '../assets/logo.png'
 import LightButton from '../components/LightButton.vue'
 import DarkButton from '../components/DarkButton.vue'
 import BaseInput from '../components/BaseInput.vue'
 
 const router = useRouter()
+const store = useDataStore()
+
+const email = ref('')
+const senha = ref('')
+
+async function realizarLogin() {
+  const sucesso = await store.login(email.value, senha.value)
+  if (sucesso) {
+    router.push('/fretesadm')
+  } else {
+    alert('Falha no login. Verifique suas credenciais.')
+  }
+}
 
 function irParaCadastro() {
   router.push('/cadastro')
@@ -40,12 +55,12 @@ function irParaCadastro() {
         </div>
 
         <div class="inputs">
-          <BaseInput placeholder="Nome" />
-          <BaseInput type="email" placeholder="Email" />
-          <BaseInput type="password" placeholder="Senha" />
+         
+          <BaseInput v-model="email" type="email" placeholder="Email" />
+          <BaseInput v-model="senha" type="password" placeholder="Senha" />
         </div>
 
-        <DarkButton label="Entrar" />
+        <DarkButton label="Entrar" @click="realizarLogin" />
       </div>
     </div>
   </div>
