@@ -54,10 +54,9 @@ onMounted(() => {
 </template>
 
 <style scoped>
-/* Base da Página */
 .admin-container {
   padding: 40px;
-  background-color: #f9f9f9; /* Cinza claro do fundo do login */
+  background-color: #f9f9f9; 
   min-height: 100vh;
   font-family: 'Inter', sans-serif;
   color: #1a1a1a;
