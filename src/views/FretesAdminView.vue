@@ -1,7 +1,9 @@
 <script setup>
 import { onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { useFreteStore } from '../stores/freteStore';
 
+const router = useRouter()
 const freteStore = useFreteStore();
 
 onMounted(() => {
@@ -46,6 +48,7 @@ onMounted(() => {
           </tr>
         </tbody>
       </table>
+      <button @click="router.back()" style="margin-top: 20px;">Voltar</button>
     </div>
   </div>
 </template>

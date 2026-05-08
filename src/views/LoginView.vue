@@ -1,7 +1,7 @@
 <script setup>
-import { ref } from 'vue' // Adicionado
+import { ref } from 'vue' 
 import { useRouter } from 'vue-router'
-import { useDataStore } from '../stores/useDataStore' // Adicionado
+import { useDataStore } from '../stores/useDataStore'
 import logo from '../assets/logo.png'
 import LightButton from '../components/LightButton.vue'
 import DarkButton from '../components/DarkButton.vue'
@@ -16,7 +16,7 @@ const senha = ref('')
 async function realizarLogin() {
   const sucesso = await store.login(email.value, senha.value)
   if (sucesso) {
-    router.push('/fretesadm')
+    router.push('/hubadmin')
   } else {
     alert('Falha no login. Verifique suas credenciais.')
   }
