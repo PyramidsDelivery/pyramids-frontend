@@ -16,7 +16,12 @@ const senha = ref('')
 async function realizarLogin() {
   const sucesso = await store.login(email.value, senha.value)
   if (sucesso) {
-    router.push('/hubadmin')
+    // Lógica de redirecionamento baseada no cargo
+    if (store.isStaff || store.isSuperuser) {
+      router.push('/hubadmin')
+    } else {
+      router.push('/usuario-hub') 
+    }
   } else {
     alert('Falha no login. Verifique suas credenciais.')
   }
@@ -26,7 +31,6 @@ function irParaCadastro() {
   router.push('/cadastro')
 }
 </script>
-
 <template>
   <div class="container">
     <!-- LADO ESQUERDO -->
