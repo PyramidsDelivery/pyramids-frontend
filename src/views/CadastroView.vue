@@ -1,14 +1,44 @@
 <script setup>
+import { ref } from 'vue' // Importamos o ref para capturar os dados
 import { useRouter } from 'vue-router'
+import { useDataStore } from '../stores/useDataStore' // Importamos a sua store
 import logo from '../assets/logo.png'
 import LightButton from '../components/LightButton.vue'
 import DarkButton from '../components/DarkButton.vue'
 import BaseInput from '../components/BaseInput.vue'
 
 const router = useRouter()
+const dataStore = useDataStore()
+
+// Variáveis para os campos do formulário
+const nome = ref('')
+const email = ref('')
+const senha = ref('')
+const confirmarSenha = ref('')
 
 function irParaLogin() {
   router.push('/')
+}
+
+async function realizarCadastro() {
+  // Validação simples de senha
+  if (senha.value !== confirmarSenha.value) {
+    alert("As senhas não coincidem!")
+    return
+  }
+
+  if (nome.value && email.value && senha.value) {
+    const sucesso = await dataStore.cadastro(nome.value, email.value, senha.value)
+    
+    if (sucesso) {
+      alert("Conta criada com sucesso!")
+      router.push('/') // Redireciona para o login após cadastrar
+    } else {
+      alert("Erro ao criar conta. Verifique os dados ou se o email já existe.")
+    }
+  } else {
+    alert("Por favor, preencha todos os campos.")
+  }
 }
 </script>
 
@@ -38,17 +68,21 @@ function irParaLogin() {
         </div>
 
         <div class="inputs">
-          <BaseInput placeholder="Nome" />
-          <BaseInput type="email" placeholder="Email" />
-          <BaseInput type="password" placeholder="Senha" />
-          <BaseInput type="password" placeholder="Confirmar senha" />
+          <!-- Adicionamos o v-model para ligar os inputs às variáveis -->
+          <BaseInput v-model="nome" placeholder="Nome" />
+          <BaseInput v-model="email" type="email" placeholder="Email" />
+          <BaseInput v-model="senha" type="password" placeholder="Senha" />
+          <BaseInput v-model="confirmarSenha" type="password" placeholder="Confirmar senha" />
         </div>
 
-        <DarkButton label="Cadastrar" />
+        <!-- Chamamos a função realizarCadastro no clique -->
+        <DarkButton label="Cadastrar" @click="realizarCadastro" />
 
       </div>
     </div>
   </div>
+
+  <!-- VERSÃO MOBILE -->
   <div class="mobile">
     <div class="top">
       <img :src="logo" alt="Logo" />
@@ -61,14 +95,14 @@ function irParaLogin() {
       </div>
 
       <div class="inputs">
-        <BaseInput placeholder="Nome" />
-        <BaseInput type="email" placeholder="Email" />
-        <BaseInput type="password" placeholder="Senha" />
-        <BaseInput type="password" placeholder="Confirmar senha" />
+        <BaseInput v-model="nome" placeholder="Nome" />
+        <BaseInput v-model="email" type="email" placeholder="Email" />
+        <BaseInput v-model="senha" type="password" placeholder="Senha" />
+        <BaseInput v-model="confirmarSenha" type="password" placeholder="Confirmar senha" />
       </div>
 
       <div class="mobile-btn">
-        <DarkButton label="Cadastrar" />
+        <DarkButton label="Cadastrar" @click="realizarCadastro" />
       </div>
 
       <p class="mobile-link">

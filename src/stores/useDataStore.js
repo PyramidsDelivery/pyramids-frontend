@@ -4,7 +4,6 @@ import api from '../services/api';
 export const useDataStore = defineStore('data', {
   state: () => ({
     token: localStorage.getItem('token') || '',
-    // Adicionamos estados para os cargos, recuperando do localStorage para persistir no F5
     isStaff: localStorage.getItem('is_staff') === 'true',
     isSuperuser: localStorage.getItem('is_superuser') === 'true',
     user: null,
@@ -18,20 +17,15 @@ export const useDataStore = defineStore('data', {
           password: password 
         });
 
-        // 1. Extrair os dados da resposta
         const { token, is_staff, is_superuser } = response.data;
 
-        // 2. Atualizar o estado da Store
         this.token = token;
         this.isStaff = is_staff;
         this.isSuperuser = is_superuser;
 
-        // 3. Salvar no localStorage para persistência
         localStorage.setItem('token', token);
         localStorage.setItem('is_staff', is_staff);
         localStorage.setItem('is_superuser', is_superuser);
-
-        // 4. Configurar o header global do axios
         api.defaults.headers.common['Authorization'] = `Token ${this.token}`;
         
         return true;
@@ -40,19 +34,36 @@ export const useDataStore = defineStore('data', {
         return false;
       }
     },
-    
+
+    // --- NOVA ACTION DE CADASTRO ---
+    async cadastro(nome, email, password) {
+      try {
+        // Envia para o endpoint 'registro/' conforme definido no seu urls.py
+        await api.post('registro/', { 
+         
+          email: email, 
+          name: nome,      // Campo necessário para preencher o Personal Info
+          password: password 
+        });
+        
+        return true;
+      } catch (error) {
+        // Log detalhado para identificar erros de validação do Django
+        console.error("Erro no cadastro:", error.response?.data || error);
+        return false;
+      }
+    },
+    // -------------------------------
+
     logout() {
-      // Limpar estados
       this.token = '';
       this.isStaff = false;
       this.isSuperuser = false;
 
-      // Limpar localStorage
       localStorage.removeItem('token');
       localStorage.removeItem('is_staff');
       localStorage.removeItem('is_superuser');
 
-      // Limpar header do axios
       delete api.defaults.headers.common['Authorization'];
     }
   }
