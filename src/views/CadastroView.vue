@@ -14,7 +14,6 @@ function irParaLogin() {
 
 <template>
   <div class="container">
-    <!-- LADO ESQUERDO -->
     <div class="left">
       <div class="left-content">
         <img :src="logo" alt="Logo" />
@@ -28,7 +27,6 @@ function irParaLogin() {
       </div>
     </div>
 
-    <!-- LADO DIREITO -->
     <div class="right">
       <div class="right-content">
 
