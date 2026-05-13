@@ -15,7 +15,6 @@ onMounted(async () => {
     usuarios.value = response.data.results;
   } catch (error) {
     console.error("Erro detectado na requisição:", error);
-    // Tente ver o que o servidor respondeu exatamente:
     if (error.response) {
        console.log("Detalhes do erro no Django:", error.response.data);
     }
@@ -29,25 +28,25 @@ onMounted(async () => {
   <div class="usuarios-container">
     <h1>Lista de Usuários</h1>
 
-    <!-- Adicionamos o v-if para garantir que a tabela só apareça se houver usuários -->
+  
     <table v-if="usuarios.length > 0" border="1" style="width: 100%; text-align: left; border-collapse: collapse;">
       <thead>
        <tr>
   <th>ID</th>
   <th>Nome</th>
   <th>Email</th>
-  <th>Nível</th> <!-- Nova coluna -->
+  <th>Nível</th> 
   <th>Status</th>
 </tr>
       </thead>
       <tbody>
-       <!-- No tbody, dentro do v-for -->
+      
 <tr v-for="user in usuarios" :key="user.id">
   <td>{{ user.id }}</td>
   <td>{{ user.name || 'Sem nome' }}</td>
   <td>{{ user.email }}</td>
   
-  <!-- Lógica para mostrar o nível de acesso -->
+
   <td>
     <span v-if="user.is_superuser" class="badge-admin">Superuser</span>
     <span v-else-if="user.is_staff" class="badge-staff">Staff</span>
