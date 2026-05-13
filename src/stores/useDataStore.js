@@ -35,25 +35,23 @@ export const useDataStore = defineStore('data', {
       }
     },
 
-    // --- NOVA ACTION DE CADASTRO ---
+   
     async cadastro(nome, email, password) {
       try {
-        // Envia para o endpoint 'registro/' conforme definido no seu urls.py
         await api.post('registro/', { 
          
           email: email, 
-          name: nome,      // Campo necessário para preencher o Personal Info
+          name: nome,     
           password: password 
         });
         
         return true;
       } catch (error) {
-        // Log detalhado para identificar erros de validação do Django
         console.error("Erro no cadastro:", error.response?.data || error);
         return false;
       }
     },
-    // -------------------------------
+
 
     logout() {
       this.token = '';

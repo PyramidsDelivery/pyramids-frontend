@@ -5,8 +5,7 @@ import CadastroView from '../views/CadastroView.vue'
 import FretesAdminView from '../views/FretesAdminView.vue'
 import HubAdminView from '../views/HubAdminView.vue'
 import UsuariosListView from '../views/UsuariosListView.vue'
-import UsuarioHubView from '../views/UsuarioHubView.vue' // Importe a view do usuário comum
-
+import UsuarioHubView from '../views/UsuarioHubView.vue'
 const routes = [
   {
     path: '/',
@@ -55,22 +54,21 @@ router.beforeEach((to, from, next) => {
   const isStaff = store.isStaff || localStorage.getItem('is_staff') === 'true'
   const isSuper = store.isSuperuser || localStorage.getItem('is_superuser') === 'true'
 
-  // 1. Verificar se a rota exige apenas autenticação comum
   if (to.meta.requiresAuth && !token) {
     return next({ name: 'login' })
   }
 
-  // 2. Verificar se a rota exige cargo de Admin/Staff
+ 
   if (to.meta.requiresAdmin) {
     if (!token) {
       next({ name: 'login' })
     } else if (isStaff || isSuper) {
-      next() // É admin, pode passar
+      next() 
     } else {
-      next({ name: 'usuario-hub' }) // Não é admin, manda para o hub do usuário
+      next({ name: 'usuario-hub' })
     }
   } else {
-    next() // Rota pública (Login/Cadastro)
+    next() 
   }
 })
 
