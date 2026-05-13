@@ -5,7 +5,7 @@ import CadastroView from '../views/CadastroView.vue'
 import FretesAdminView from '../views/FretesAdminView.vue'
 import HubAdminView from '../views/HubAdminView.vue'
 import UsuariosListView from '../views/UsuariosListView.vue'
-import UsuarioHubView from '../views/UsuarioHubView.vue' // Importe a view do usuário comum
+import UsuarioHubView from '../views/UsuarioHubView.vue'
 
 const routes = [
   {

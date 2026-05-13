@@ -16,7 +16,6 @@ const senha = ref('')
 async function realizarLogin() {
   const sucesso = await store.login(email.value, senha.value)
   if (sucesso) {
-    // Lógica de redirecionamento baseada no cargo
     if (store.isStaff || store.isSuperuser) {
       router.push('/hubadmin')
     } else {
@@ -33,7 +32,6 @@ function irParaCadastro() {
 </script>
 <template>
   <div class="container">
-    <!-- LADO ESQUERDO -->
     <div class="left">
       <!-- LOGO -->
 
@@ -176,6 +174,7 @@ function irParaCadastro() {
   flex-direction: column;
   align-items: center;
   gap: 10px;
+  text-align: center;
 }
 
 .right h1 {

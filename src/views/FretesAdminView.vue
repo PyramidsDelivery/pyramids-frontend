@@ -1,21 +1,42 @@
+# Administração de Fretes — Código Refatorado
+
+```vue
 <script setup>
-import { onMounted } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useFreteStore } from '../stores/freteStore';
 
-const router = useRouter()
+const router = useRouter();
 const freteStore = useFreteStore();
 
-onMounted(() => {
-  freteStore.carregarFretes();
+onMounted(async () => {
+  await freteStore.carregarFretes();
 });
+
+const listaFretes = computed(() => freteStore.listaFretes || []);
+
+const getStatusClass = (status) => {
+  if (!status) return 'status-default';
+
+  return `status-${status
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')}`;
+};
 </script>
 
 <template>
   <div class="admin-container">
     <header class="admin-header">
-      <h1>Administração de Fretes</h1>
-      <p>Gerencie as cargas e status em tempo real.</p>
+      <div>
+        <h1>Administração de Fretes</h1>
+        <p>Gerencie cargas e acompanhe os status em tempo real.</p>
+      </div>
+
+      <button class="back-button" @click="router.back()">
+        Voltar
+      </button>
     </header>
 
     <div v-if="freteStore.loading" class="loader-container">
@@ -23,7 +44,7 @@ onMounted(() => {
       <span>Buscando dados no servidor...</span>
     </div>
 
-    <div v-else class="table-wrapper">
+    <div v-else-if="listaFretes.length" class="table-wrapper">
       <table class="fretes-table">
         <thead>
           <tr>
@@ -34,152 +55,249 @@ onMounted(() => {
             <th>Status</th>
           </tr>
         </thead>
+
         <tbody>
-          <tr v-for="frete in freteStore.listaFretes" :key="frete.id">
+          <tr
+            v-for="frete in listaFretes"
+            :key="frete.id"
+          >
             <td class="id-cell">#{{ frete.id }}</td>
-            <td>{{ frete.carga }}</td>
-            <td class="bold">{{ frete.motorista }}</td>
-            <td class="price-cell">{{ frete.moeda }} {{ frete.valor_frete }}</td>
+
             <td>
-              <span :class="['status-badge', 'status-' + frete.status.toLowerCase()]">
+              {{ frete.carga }}
+            </td>
+
+            <td class="driver-cell">
+              {{ frete.motorista }}
+            </td>
+
+            <td class="price-cell">
+              {{ frete.moeda }} {{ frete.valor_frete }}
+            </td>
+
+            <td>
+              <span
+                :class="['status-badge', getStatusClass(frete.status)]"
+              >
                 {{ frete.status }}
               </span>
             </td>
           </tr>
         </tbody>
       </table>
-      <button @click="router.back()" style="margin-top: 20px;">Voltar</button>
+    </div>
+
+    <div v-else class="empty-state">
+      <h2>Nenhum frete encontrado</h2>
+      <p>Não existem cargas cadastradas no momento.</p>
     </div>
   </div>
 </template>
 
 <style scoped>
-/* Base da Página */
+* {
+  box-sizing: border-box;
+}
+
 .admin-container {
-  padding: 40px;
-  background-color: #f9f9f9; /* Cinza claro do fundo do login */
   min-height: 100vh;
+  padding: 40px;
+  background: #f5f5f5;
   font-family: 'Inter', sans-serif;
   color: #1a1a1a;
 }
 
 .admin-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
   margin-bottom: 30px;
-  border-left: 5px solid #1a1a1a;
   padding-left: 20px;
+  border-left: 5px solid #111;
 }
 
 .admin-header h1 {
+  margin: 0;
   font-size: 2rem;
   font-weight: 800;
-  margin: 0;
-  text-transform: uppercase;
   letter-spacing: -1px;
+  text-transform: uppercase;
 }
 
 .admin-header p {
+  margin-top: 6px;
   color: #666;
-  margin-top: 5px;
 }
 
-/* Tabela Estilizada */
+.back-button {
+  border: none;
+  background: #111;
+  color: white;
+  padding: 12px 20px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: 0.2s ease;
+}
+
+.back-button:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
 .table-wrapper {
+  overflow-x: auto;
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-  overflow: hidden;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
 }
 
 .fretes-table {
   width: 100%;
   border-collapse: collapse;
-  text-align: left;
+}
+
+.fretes-table thead {
+  background: #111;
 }
 
 .fretes-table th {
-  background-color: #1a1a1a; /* Preto da lateral do login */
-  color: #ffffff;
   padding: 18px 20px;
-  font-weight: 500;
+  color: white;
+  text-align: left;
   font-size: 0.85rem;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1px;
 }
 
 .fretes-table td {
-  padding: 16px 20px;
-  border-bottom: 1px solid #eee;
-  color: #444;
+  padding: 18px 20px;
+  border-bottom: 1px solid #ececec;
   font-size: 0.95rem;
+  color: #444;
 }
 
-.fretes-table tr:hover {
-  background-color: #fcfcfc;
+.fretes-table tbody tr {
+  transition: background 0.2s ease;
 }
 
-/* Destaques de Células */
+.fretes-table tbody tr:hover {
+  background: #fafafa;
+}
+
 .id-cell {
-  color: #999;
+  color: #8b8b8b;
   font-family: monospace;
 }
 
-.bold {
+.driver-cell {
   font-weight: 600;
-  color: #1a1a1a;
+  color: #111;
 }
 
 .price-cell {
   font-weight: 700;
-  color: #1a1a1a;
+  color: #111;
 }
 
-/* Badges de Status */
 .status-badge {
-  display: inline-block;
-  padding: 6px 12px;
-  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 120px;
+  padding: 8px 14px;
+  border-radius: 999px;
   font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
-  background-color: #e0e0e0; /* Default */
 }
 
 .status-pendente {
-  background-color: #fff3cd;
+  background: #fff3cd;
   color: #856404;
 }
 
 .status-concluido {
-  background-color: #1a1a1a; /* Preto para combinar com o tema */
-  color: #ffffff;
+  background: #111;
+  color: white;
 }
 
 .status-em-transito {
-  background-color: #e3f2fd;
+  background: #e3f2fd;
   color: #0d47a1;
 }
 
-/* Loader */
+.status-default {
+  background: #e0e0e0;
+  color: #444;
+}
+
 .loader-container {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-top: 50px;
+  justify-content: center;
+  margin-top: 80px;
   color: #666;
 }
 
 .loader {
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #1a1a1a;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  animation: spin 1s linear infinite;
+  width: 45px;
+  height: 45px;
   margin-bottom: 15px;
+  border: 4px solid #e5e5e5;
+  border-top: 4px solid #111;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.empty-state {
+  padding: 60px 20px;
+  text-align: center;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.empty-state h2 {
+  margin-bottom: 10px;
+}
+
+.empty-state p {
+  color: #666;
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-container {
+    padding: 20px;
+  }
+
+  .admin-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .fretes-table th,
+  .fretes-table td {
+    padding: 14px;
+    font-size: 0.85rem;
+  }
+
+  .status-badge {
+    min-width: auto;
+    width: 100%;
+  }
 }
 </style>
