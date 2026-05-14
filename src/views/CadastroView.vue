@@ -73,6 +73,8 @@ async function realizarCadastro() {
       </div>
     </div>
   </div>
+
+  <!-- VERSÃO MOBILE -->
   <div class="mobile">
     <div class="top">
       <img :src="logo" alt="Logo" />
