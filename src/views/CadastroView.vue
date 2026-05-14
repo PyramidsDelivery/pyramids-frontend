@@ -1,7 +1,7 @@
 <script setup>
-import { ref } from 'vue' // Importamos o ref para capturar os dados
+import { ref } from 'vue' 
 import { useRouter } from 'vue-router'
-import { useDataStore } from '../stores/useDataStore' // Importamos a sua store
+import { useDataStore } from '../stores/useDataStore' 
 import logo from '../assets/logo.png'
 import LightButton from '../components/LightButton.vue'
 import DarkButton from '../components/DarkButton.vue'
@@ -9,8 +9,6 @@ import BaseInput from '../components/BaseInput.vue'
 
 const router = useRouter()
 const dataStore = useDataStore()
-
-// Variáveis para os campos do formulário
 const nome = ref('')
 const email = ref('')
 const senha = ref('')
@@ -21,7 +19,6 @@ function irParaLogin() {
 }
 
 async function realizarCadastro() {
-  // Validação simples de senha
   if (senha.value !== confirmarSenha.value) {
     alert("As senhas não coincidem!")
     return
@@ -32,7 +29,7 @@ async function realizarCadastro() {
     
     if (sucesso) {
       alert("Conta criada com sucesso!")
-      router.push('/') // Redireciona para o login após cadastrar
+      router.push('/') 
     } else {
       alert("Erro ao criar conta. Verifique os dados ou se o email já existe.")
     }
@@ -44,7 +41,6 @@ async function realizarCadastro() {
 
 <template>
   <div class="container">
-    <!-- LADO ESQUERDO -->
     <div class="left">
       <div class="left-content">
         <img :src="logo" alt="Logo" />
@@ -57,8 +53,6 @@ async function realizarCadastro() {
         <LightButton label="Login" @click="irParaLogin" />
       </div>
     </div>
-
-    <!-- LADO DIREITO -->
     <div class="right">
       <div class="right-content">
 
@@ -68,14 +62,12 @@ async function realizarCadastro() {
         </div>
 
         <div class="inputs">
-          <!-- Adicionamos o v-model para ligar os inputs às variáveis -->
           <BaseInput v-model="nome" placeholder="Nome" />
           <BaseInput v-model="email" type="email" placeholder="Email" />
           <BaseInput v-model="senha" type="password" placeholder="Senha" />
           <BaseInput v-model="confirmarSenha" type="password" placeholder="Confirmar senha" />
         </div>
 
-        <!-- Chamamos a função realizarCadastro no clique -->
         <DarkButton label="Cadastrar" @click="realizarCadastro" />
 
       </div>
