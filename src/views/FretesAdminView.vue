@@ -44,7 +44,12 @@ const abrirMotorista = async (id) => {
         <h1>Administração de Fretes</h1>
         <p>Gerencie cargas e acompanhe os status em tempo real.</p>
       </div>
-      <button class="back-button" @click="router.back()">Voltar</button>
+      <div class="header-btns">
+    <button class="add-button" @click="router.push('/fretes/novo')">
+      + Novo Frete
+    </button>
+    <button class="back-button" @click="router.back()">Voltar</button>
+  </div>
     </header>
 
     <div v-if="freteStore.loading" class="loader-container">
@@ -76,7 +81,7 @@ const abrirMotorista = async (id) => {
             </td>
 
             <td class="price-cell">
-              {{ frete.moeda }} {{ frete.valor_frete }}
+               {{ frete.valor_frete }} {{ frete.moeda }}
             </td>
             <td>
               <span :class="['status-badge', getStatusClass(frete.status)]">
