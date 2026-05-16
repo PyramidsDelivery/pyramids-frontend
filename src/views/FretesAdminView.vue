@@ -92,19 +92,37 @@ const abrirMotorista = async (id) => {
         </tbody>
       </table>
     </div>
+<div v-if="mostrarModalCarga" class="modal-overlay" @click.self="mostrarModalCarga = false">
+  <div class="modal-content">
+    <h3>Detalhes da Carga #{{ freteStore.detalheCarga?.id }}</h3>
+    <hr />
+    
+    <div v-if="freteStore.detalheCarga" class="details-grid">
+      <p><strong>Descrição:</strong> {{ freteStore.detalheCarga.descricao }}</p>
+      <p><strong>Peso:</strong> {{ freteStore.detalheCarga.peso }} {{ freteStore.detalheCarga.unidade || 'kg' }}</p>
+      
+      </div>
 
-    <div v-if="mostrarModalCarga" class="modal-overlay" @click.self="mostrarModalCarga = false">
-      <div class="modal-content">
-        <h3>Detalhes da Carga #{{ freteStore.detalheCarga?.id }}</h3>
-        <hr />
-        <div v-if="freteStore.detalheCarga" class="details-grid">
-          <p><strong>Descrição:</strong> {{ freteStore.detalheCarga.descricao }}</p>
-          <p><strong>Peso:</strong> {{ freteStore.detalheCarga.peso }} kg</p>
-        </div>
-        <button class="close-btn" @click="mostrarModalCarga = false">Fechar</button>
+    <div v-if="freteStore.detalheCarga" class="foto-produto-container">
+      <label class="foto-label"><strong>Foto do Produto:</strong></label>
+      
+   <img 
+  v-if="freteStore.detalheCarga.foto_url" 
+  :src="freteStore.detalheCarga.foto_url.startsWith('http') 
+        ? freteStore.detalheCarga.foto_url 
+        : 'http://localhost:8000' + freteStore.detalheCarga.foto_url" 
+  alt="Foto da Carga" 
+  class="foto-detalhe"
+/>
+      
+      <div v-else class="sem-foto-placeholder">
+        <span>Nenhuma foto cadastrada</span>
       </div>
     </div>
 
+    <button class="close-btn" @click="mostrarModalCarga = false">Fechar</button>
+  </div>
+</div>
     <div v-if="mostrarModalMotorista" class="modal-overlay" @click.self="mostrarModalMotorista = false">
       <div class="modal-content">
         <h3>Informações do Motorista</h3>
@@ -112,7 +130,7 @@ const abrirMotorista = async (id) => {
         <div v-if="freteStore.detalheMotorista" class="details-grid">
           <p><strong>Nome:</strong> {{ freteStore.detalheMotorista.nome }}</p>
           <p><strong>CNH:</strong> {{ freteStore.detalheMotorista.cnh }}</p>
-          <!-- <p><strong>Telefone:</strong> {{ freteStore.detalheMotorista.telefone }}</p> -->
+          <p><strong>Telefone:</strong> {{ freteStore.detalheMotorista.telefone }}</p> 
         </div>
         <button class="close-btn" @click="mostrarModalMotorista = false">Fechar</button>
       </div>
@@ -121,6 +139,49 @@ const abrirMotorista = async (id) => {
 </template>
 
 <style scoped>
+.foto-produto-container {
+  margin: 15px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background-color: #fdfdfd;
+  padding: 10px;
+  border-radius: 6px;
+}
+
+.foto-label {
+  align-self: flex-start;
+  color: #444;
+  font-size: 0.95rem;
+}
+
+.foto-detalhe {
+  width: 100%;
+  max-width: 280px; /* Impede a imagem de esticar demais */
+  height: auto;
+  max-height: 200px; /* Mantém uma altura controlada dentro do modal */
+  object-fit: contain; /* Encaixa a foto perfeitamente sem cortar os lados do produto */
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  background: #f7f7f7;
+}
+
+.sem-foto-placeholder {
+  width: 100%;
+  max-width: 280px;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed #ccc;
+  border-radius: 6px;
+  color: #888;
+  font-style: italic;
+  font-size: 0.9rem;
+  background-color: #fafafa;
+}
 .clickable-cell {
   color: #3498db;
   text-decoration: underline;
