@@ -45,11 +45,11 @@ const abrirMotorista = async (id) => {
         <p>Gerencie cargas e acompanhe os status em tempo real.</p>
       </div>
       <div class="header-btns">
-    <button class="add-button" @click="router.push('/fretes/novo')">
-      + Novo Frete
-    </button>
-    <button class="back-button" @click="router.back()">Voltar</button>
-  </div>
+        <button class="add-button" @click="router.push('/fretes/novo')">
+          + Novo Frete
+        </button>
+        <button class="back-button" @click="router.back()">Voltar</button>
+      </div>
     </header>
 
     <div v-if="freteStore.loading" class="loader-container">
@@ -62,7 +62,7 @@ const abrirMotorista = async (id) => {
         <thead>
           <tr>
             <th>ID</th>
-            <th>Carga</th>
+            <th>Solicitante</th> <th>Carga</th>
             <th>Motorista</th>
             <th>Valor</th>
             <th>Status</th>
@@ -72,6 +72,8 @@ const abrirMotorista = async (id) => {
           <tr v-for="frete in listaFretes" :key="frete.id">
             <td class="id-cell">#{{ frete.id }}</td>
             
+            <td class="user-cell">{{ frete.usuario_email || 'Não informado' }}</td>
+
             <td class="clickable-cell" @click="abrirCarga(frete.carga)">
               {{ frete.carga }}
             </td>
@@ -92,37 +94,36 @@ const abrirMotorista = async (id) => {
         </tbody>
       </table>
     </div>
-<div v-if="mostrarModalCarga" class="modal-overlay" @click.self="mostrarModalCarga = false">
-  <div class="modal-content">
-    <h3>Detalhes da Carga #{{ freteStore.detalheCarga?.id }}</h3>
-    <hr />
-    
-    <div v-if="freteStore.detalheCarga" class="details-grid">
-      <p><strong>Descrição:</strong> {{ freteStore.detalheCarga.descricao }}</p>
-      <p><strong>Peso:</strong> {{ freteStore.detalheCarga.peso }} {{ freteStore.detalheCarga.unidade || 'kg' }}</p>
-      
-      </div>
 
-    <div v-if="freteStore.detalheCarga" class="foto-produto-container">
-      <label class="foto-label"><strong>Foto do Produto:</strong></label>
-      
-   <img 
-  v-if="freteStore.detalheCarga.foto_url" 
-  :src="freteStore.detalheCarga.foto_url.startsWith('http') 
-        ? freteStore.detalheCarga.foto_url 
-        : 'http://localhost:8000' + freteStore.detalheCarga.foto_url" 
-  alt="Foto da Carga" 
-  class="foto-detalhe"
-/>
-      
-      <div v-else class="sem-foto-placeholder">
-        <span>Nenhuma foto cadastrada</span>
+    <div v-if="mostrarModalCarga" class="modal-overlay" @click.self="mostrarModalCarga = false">
+      <div class="modal-content">
+        <h3>Detalhes da Carga #{{ freteStore.detalheCarga?.id }}</h3>
+        <hr />
+        
+        <div v-if="freteStore.detalheCarga" class="details-grid">
+          <p><strong>Descrição:</strong> {{ freteStore.detalheCarga.descricao }}</p>
+          <p><strong>Peso:</strong> {{ freteStore.detalheCarga.peso }} {{ freteStore.detalheCarga.unidade || 'kg' }}</p>
+        </div>
+
+        <div v-if="freteStore.detalheCarga" class="foto-produto-container">
+          <label class="foto-label"><strong>Foto do Produto:</strong></label>
+          <img 
+            v-if="freteStore.detalheCarga.foto_url" 
+            :src="freteStore.detalheCarga.foto_url.startsWith('http') 
+                  ? freteStore.detalheCarga.foto_url 
+                  : 'http://localhost:8000' + freteStore.detalheCarga.foto_url" 
+            alt="Foto da Carga" 
+            class="foto-detalhe"
+          />
+          <div v-else class="sem-foto-placeholder">
+            <span>Nenhuma foto cadastrada</span>
+          </div>
+        </div>
+
+        <button class="close-btn" @click="mostrarModalCarga = false">Fechar</button>
       </div>
     </div>
 
-    <button class="close-btn" @click="mostrarModalCarga = false">Fechar</button>
-  </div>
-</div>
     <div v-if="mostrarModalMotorista" class="modal-overlay" @click.self="mostrarModalMotorista = false">
       <div class="modal-content">
         <h3>Informações do Motorista</h3>
@@ -139,6 +140,13 @@ const abrirMotorista = async (id) => {
 </template>
 
 <style scoped>
+/* Adicione esse estilo rápido para alinhar a célula do usuário */
+.user-cell {
+  color: #555;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
 .foto-produto-container {
   margin: 15px 0;
   display: flex;
