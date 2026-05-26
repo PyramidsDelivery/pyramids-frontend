@@ -48,6 +48,9 @@ const abrirMotorista = async (id) => {
         <button class="add-button" @click="router.push('/fretes/novo')">
           + Novo Frete
         </button>
+        <button class="add-button" @click="router.push('/cargas/novo')">
+          + Nova carga
+        </button>
         <button class="back-button" @click="router.back()">Voltar</button>
       </div>
     </header>
