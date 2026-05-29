@@ -1,13 +1,14 @@
-# Administração de Fretes — Código Refatorado
-
-```vue
 <script setup>
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useFreteStore } from '../stores/freteStore';
 
 const router = useRouter();
 const freteStore = useFreteStore();
+
+// Controle de visibilidade dos modais
+const mostrarModalCarga = ref(false);
+const mostrarModalMotorista = ref(false);
 
 onMounted(async () => {
   await freteStore.carregarFretes();
@@ -17,12 +18,22 @@ const listaFretes = computed(() => freteStore.listaFretes || []);
 
 const getStatusClass = (status) => {
   if (!status) return 'status-default';
-
   return `status-${status
     .toLowerCase()
     .replace(/\s+/g, '-')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')}`;
+};
+
+// Funções para abrir detalhes
+const abrirCarga = async (id) => {
+  await freteStore.buscarDetalheCarga(id);
+  mostrarModalCarga.value = true;
+};
+
+const abrirMotorista = async (id) => {
+  await freteStore.buscarDetalheMotorista(id);
+  mostrarModalMotorista.value = true;
 };
 </script>
 
@@ -33,10 +44,15 @@ const getStatusClass = (status) => {
         <h1>Administração de Fretes</h1>
         <p>Gerencie cargas e acompanhe os status em tempo real.</p>
       </div>
-
-      <button class="back-button" @click="router.back()">
-        Voltar
-      </button>
+      <div class="header-btns">
+        <button class="add-button" @click="router.push('/fretes/novo')">
+          + Novo Frete
+        </button>
+        <button class="add-button" @click="router.push('/cargas/novo')">
+          + Nova carga
+        </button>
+        <button class="back-button" @click="router.back()">Voltar</button>
+      </div>
     </header>
 
     <div v-if="freteStore.loading" class="loader-container">
@@ -49,36 +65,31 @@ const getStatusClass = (status) => {
         <thead>
           <tr>
             <th>ID</th>
-            <th>Carga</th>
+            <th>Solicitante</th> <th>Carga</th>
             <th>Motorista</th>
             <th>Valor</th>
             <th>Status</th>
           </tr>
         </thead>
-
         <tbody>
-          <tr
-            v-for="frete in listaFretes"
-            :key="frete.id"
-          >
+          <tr v-for="frete in listaFretes" :key="frete.id">
             <td class="id-cell">#{{ frete.id }}</td>
+            
+            <td class="user-cell">{{ frete.usuario_email || 'Não informado' }}</td>
 
-            <td>
+            <td class="clickable-cell" @click="abrirCarga(frete.carga)">
               {{ frete.carga }}
             </td>
 
-            <td class="driver-cell">
+            <td class="clickable-cell" @click="abrirMotorista(frete.motorista)">
               {{ frete.motorista }}
             </td>
 
             <td class="price-cell">
-              {{ frete.moeda }} {{ frete.valor_frete }}
+               {{ frete.valor_frete }} {{ frete.moeda }}
             </td>
-
             <td>
-              <span
-                :class="['status-badge', getStatusClass(frete.status)]"
-              >
+              <span :class="['status-badge', getStatusClass(frete.status)]">
                 {{ frete.status }}
               </span>
             </td>
@@ -87,14 +98,143 @@ const getStatusClass = (status) => {
       </table>
     </div>
 
-    <div v-else class="empty-state">
-      <h2>Nenhum frete encontrado</h2>
-      <p>Não existem cargas cadastradas no momento.</p>
+    <div v-if="mostrarModalCarga" class="modal-overlay" @click.self="mostrarModalCarga = false">
+      <div class="modal-content">
+        <h3>Detalhes da Carga #{{ freteStore.detalheCarga?.id }}</h3>
+        <hr />
+        
+        <div v-if="freteStore.detalheCarga" class="details-grid">
+          <p><strong>Descrição:</strong> {{ freteStore.detalheCarga.descricao }}</p>
+          <p><strong>Peso:</strong> {{ freteStore.detalheCarga.peso }} {{ freteStore.detalheCarga.unidade || 'kg' }}</p>
+        </div>
+
+        <div v-if="freteStore.detalheCarga" class="foto-produto-container">
+          <label class="foto-label"><strong>Foto do Produto:</strong></label>
+          <img 
+            v-if="freteStore.detalheCarga.foto_url" 
+            :src="freteStore.detalheCarga.foto_url.startsWith('http') 
+                  ? freteStore.detalheCarga.foto_url 
+                  : 'http://localhost:8000' + freteStore.detalheCarga.foto_url" 
+            alt="Foto da Carga" 
+            class="foto-detalhe"
+          />
+          <div v-else class="sem-foto-placeholder">
+            <span>Nenhuma foto cadastrada</span>
+          </div>
+        </div>
+
+        <button class="close-btn" @click="mostrarModalCarga = false">Fechar</button>
+      </div>
+    </div>
+
+    <div v-if="mostrarModalMotorista" class="modal-overlay" @click.self="mostrarModalMotorista = false">
+      <div class="modal-content">
+        <h3>Informações do Motorista</h3>
+        <hr />
+        <div v-if="freteStore.detalheMotorista" class="details-grid">
+          <p><strong>Nome:</strong> {{ freteStore.detalheMotorista.nome }}</p>
+          <p><strong>CNH:</strong> {{ freteStore.detalheMotorista.cnh }}</p>
+          <p><strong>Telefone:</strong> {{ freteStore.detalheMotorista.telefone }}</p> 
+        </div>
+        <button class="close-btn" @click="mostrarModalMotorista = false">Fechar</button>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
+/* Adicione esse estilo rápido para alinhar a célula do usuário */
+.user-cell {
+  color: #555;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.foto-produto-container {
+  margin: 15px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background-color: #fdfdfd;
+  padding: 10px;
+  border-radius: 6px;
+}
+
+.foto-label {
+  align-self: flex-start;
+  color: #444;
+  font-size: 0.95rem;
+}
+
+.foto-detalhe {
+  width: 100%;
+  max-width: 280px; /* Impede a imagem de esticar demais */
+  height: auto;
+  max-height: 200px; /* Mantém uma altura controlada dentro do modal */
+  object-fit: contain; /* Encaixa a foto perfeitamente sem cortar os lados do produto */
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  background: #f7f7f7;
+}
+
+.sem-foto-placeholder {
+  width: 100%;
+  max-width: 280px;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed #ccc;
+  border-radius: 6px;
+  color: #888;
+  font-style: italic;
+  font-size: 0.9rem;
+  background-color: #fafafa;
+}
+.clickable-cell {
+  color: #3498db;
+  text-decoration: underline;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  min-width: 300px;
+  color: #333;
+}
+
+.details-grid p {
+  margin: 10px 0;
+}
+
+.close-btn {
+  margin-top: 20px;
+  width: 100%;
+  padding: 10px;
+  background: #333;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
 * {
   box-sizing: border-box;
 }

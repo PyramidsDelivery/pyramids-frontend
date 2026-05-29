@@ -6,7 +6,8 @@ import FretesAdminView from '../views/FretesAdminView.vue'
 import HubAdminView from '../views/HubAdminView.vue'
 import UsuariosListView from '../views/UsuariosListView.vue'
 import UsuarioHubView from '../views/UsuarioHubView.vue'
-
+import CriarFreteView from '../views/CriarFreteView.vue'
+import CriarCargaView from '../views/CriarCargaView.vue'
 const routes = [
   {
     path: '/',
@@ -41,7 +42,19 @@ const routes = [
     name: 'usuarioslist',
     component: UsuariosListView,
     meta: { requiresAdmin: true }
-  }
+  },
+  {
+  path: '/fretes/novo',
+  name: 'criar-frete',
+  component: CriarFreteView,
+  meta: { requiresAdmin: false }
+ },
+ {
+  path: '/cargas/novo',
+  name: 'criar-carga',
+  component: CriarCargaView,
+  meta: { requiresAdmin: false }
+ },
 ]
 
 const router = createRouter({
