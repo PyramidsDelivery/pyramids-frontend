@@ -22,7 +22,7 @@ export const useFreteStore = defineStore('frete', {
     async carregarFretes() {
       this.loading = true;
       try {
-        const response = await api.get('fretes/');
+        const response = await api.get('fretes/?limit=1000');
         this.listaFretes = response.data.results || response.data;
       } catch (err) {
         console.error("Erro ao carregar fretes:", err);
