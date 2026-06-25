@@ -155,14 +155,28 @@ const prepararEdicaoCarga = (idCarga) => {
 
 const salvarEdicaoCarga = async () => {
   try {
-    await api.put(
-      `cargas/${cargaSelecionada.value.id}/`,
-      cargaSelecionada.value,
-    );
+    // 1. Criamos uma cópia limpa dos dados para não mexer no que está na tela
+    const dadosParaEnviar = { ...cargaSelecionada.value };
+
+    // 2. Se o campo 'foto' for apenas um link (string), nós removemos ele do envio.
+    // O Django só precisa da foto se você estiver subindo um arquivo novo.
+    if (typeof dadosParaEnviar.foto === 'string') {
+      delete dadosParaEnviar.foto;
+    }
+
+    // 3. Segurança extra: garante valores padrão caso os selects tenham ficado vazios
+    if (!dadosParaEnviar.unidade) dadosParaEnviar.unidade = 'kg';
+    if (!dadosParaEnviar.movera) dadosParaEnviar.movera = 'Reais';
+
+    // 4. Faz o envio com os dados tratados
+    await api.put(`cargas/${dadosParaEnviar.id}/`, dadosParaEnviar);
+    
     mostrarModalEditarCarga.value = false;
     await carregarDadosDoPainel();
   } catch (error) {
-    alert("Não foi possível salvar as alterações da carga.");
+    // Agora o alert vai te mostrar no console exatamente o que o Django recusou!
+    console.error("Erro detalhado do Django:", error.response?.data);
+    alert("Não foi possível salvar as alterações da carga. Verifique os campos.");
   }
 };
 
@@ -404,28 +418,32 @@ const limparFiltros = () => {
       </div>
     </div>
 
-    <div
-      v-if="mostrarModalCarga"
-      class="modal-overlay"
-      @click.self="mostrarModalCarga = false"
-    >
-      <div class="modal-content">
-        <h3>Detalhes da Carga #{{ freteStore.detalheCarga?.id }}</h3>
-        <hr />
-        <div v-if="freteStore.detalheCarga" class="details-grid">
-          <p>
-            <strong>Descrição:</strong> {{ freteStore.detalheCarga.descricao }}
-          </p>
-          <p>
-            <strong>Peso:</strong> {{ freteStore.detalheCarga.peso }}
-            {{ freteStore.detalheCarga.unidade || "kg" }}
-          </p>
+<div v-if="mostrarModalCarga" class="modal-overlay" @click.self="mostrarModalCarga = false">
+  <div class="modal-content">
+    <h3>Detalhes da Carga #{{ freteStore.detalheCarga?.id }}</h3>
+    <hr />
+    
+    <div v-if="freteStore.detalheCarga" class="details-grid">
+      <p><strong>Descrição:</strong> {{ freteStore.detalheCarga.descricao }}</p>
+      <p><strong>Peso:</strong> {{ freteStore.detalheCarga.peso }} {{ freteStore.detalheCarga.unidade || 'kg' }}</p>
+      
+      <div class="foto-produto-container">
+        <span class="foto-label"><strong>Foto da Carga:</strong></span>
+        <img 
+          v-if="freteStore.detalheCarga.foto" 
+          :src="freteStore.detalheCarga.foto" 
+          alt="Foto da carga" 
+          class="foto-detalhe" 
+        />
+        <div v-else class="sem-foto-placeholder">
+          Sem foto cadastrada
         </div>
-        <button class="close-btn" @click="mostrarModalCarga = false">
-          Fechar
-        </button>
       </div>
     </div>
+    
+    <button class="close-btn" @click="mostrarModalCarga = false">Fechar</button>
+  </div>
+</div>
 
     <div
       v-if="mostrarModalMotorista"
@@ -452,7 +470,54 @@ const limparFiltros = () => {
 </template>
 
 <style scoped>
-/* Estrutura Base e Header */
+/* Container da foto dentro do modal */
+.foto-produto-container {
+  margin: 15px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background-color: #fdfdfd;
+  padding: 10px;
+  border-radius: 6px;
+}
+
+.foto-label {
+  align-self: flex-start;
+  color: #444;
+  font-size: 0.95rem;
+}
+
+/* Estilização da tag img */
+.foto-detalhe {
+  width: 100%;
+  max-width: 280px; 
+  height: auto;
+  max-height: 200px; 
+  object-fit: contain; /* Mantém a proporção sem cortar as bordas da imagem */
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  background: #f7f7f7;
+}
+
+/* Caso o produto não tenha imagem cadastrada */
+.sem-foto-placeholder {
+  width: 100%;
+  max-width: 280px;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed #ccc;
+  border-radius: 6px;
+  color: #888;
+  font-style: italic;
+  font-size: 0.9rem;
+  background-color: #fafafa;
+}
+
+
 * {
   box-sizing: border-box;
 }
