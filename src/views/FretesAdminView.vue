@@ -180,6 +180,19 @@ const salvarEdicaoCarga = async () => {
   }
 };
 
+const excluirFrete = async (id) => {
+  if (confirm(`Tem certeza que deseja excluir permanentemente o Frete #${id}?`)) {
+    try {
+      await api.delete(`fretes/${id}/`);
+      alert(`Frete #${id} excluído com sucesso!`);
+      await carregarDadosDoPainel(); // Recarrega a tabela automaticamente
+    } catch (error) {
+      console.error("Erro ao excluir frete:", error);
+      alert("Não foi possível excluir o frete. Verifique se existem dependências.");
+    }
+  }
+};
+
 const limparFiltros = () => {
   filtroPrecoMax.value = "";
   filtroUsuario.value = "";
@@ -285,17 +298,12 @@ const limparFiltros = () => {
                 frete.status
               }}</span>
             </td>
-            <td class="actions-cell">
-              <button class="edit-btn" @click="prepararEdicao(frete)">
-                Editar Frete
-              </button>
-              <button
-                class="edit-carga-btn"
-                @click="prepararEdicaoCarga(frete.carga)"
-              >
-                Editar Carga
-              </button>
-            </td>
+           <td class="actions-cell">
+  <button class="edit-btn" @click="prepararEdicao(frete)">Editar Frete</button>
+  <button class="edit-carga-btn" @click="prepararEdicaoCarga(frete.carga)">Editar Carga</button>
+  
+  <button class="delete-btn" @click="excluirFrete(frete.id)">Excluir</button>
+</td>
           </tr>
         </tbody>
       </table>
