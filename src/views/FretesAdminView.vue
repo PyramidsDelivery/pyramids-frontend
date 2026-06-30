@@ -42,7 +42,6 @@ const cargaSelecionada = ref({
   movera: "Reais",
 });
 
-// Inicializa e configura o mapa
 const inicializarMapa = () => {
   if (mapa) {
     mapa.remove();
@@ -50,38 +49,34 @@ const inicializarMapa = () => {
     marcadorMotorista = null;
   }
 
-  // Centraliza inicialmente no Brasil
-  mapa = L.map('mapa-rastreio').setView([-15.7801, -47.9292], 4);
+  // 1. Verifica se o frete selecionado já possui coordenadas salvas no banco
+  const temCoordenadas = freteSelecionado.value.latitude && freteSelecionado.value.longitude;
 
+  // 2. Define o centro inicial do mapa: se tiver dados, usa os do frete. Se não, usa o padrão.
+  const latInicial = temCoordenadas ? freteSelecionado.value.latitude : -15.7801;
+  const lngInicial = temCoordenadas ? freteSelecionado.value.longitude : -47.9292;
+  const zoomInicial = temCoordenadas ? 13 : 4; // Zoom mais próximo se já estiver marcado
+
+  // 3. Inicializa o mapa com as coordenadas corretas
+  mapa = L.map('mapa-rastreio').setView([latInicial, lngInicial], zoomInicial);
+  
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap contributors'
   }).addTo(mapa);
 
-  // Captura clique manual no mapa
-  mapa.on('click', (e) => {
-    const { lat, lng } = e.latlng;
-    atualizarMarcadorNoMapa(lat, lng, "Ponto selecionado manualmente");
-  });
-
-  // Se houver uma localização salva
-  if (freteSelecionado.value.ultima_localizacao) {
-    const local = freteSelecionado.value.ultima_localizacao;
-    
-    // Fallback: se o registro antigo for coordenada pura, posiciona o pino
-    if (local.includes('Lat:')) {
-      try {
-        const lat = parseFloat(local.split('Lat: ')[1].split(',')[0]);
-        const lng = parseFloat(local.split('Lon: ')[1].split(' ')[0]);
-        if (!isNaN(lat) && !isNaN(lng)) {
-          atualizarMarcadorNoMapa(lat, lng, "Última Posição Salva");
-        }
-      } catch (err) {
-        console.error("Erro ao ler coordenadas legadas:", err);
-      }
-    } else {
-      console.log("Endereço textual atual do frete:", local);
+  // 4. Se o frete já tinha local, adiciona o marcador azul logo na abertura
+  if (temCoordenadas) {
+    marcadorMotorista = L.marker([latInicial, lngInicial]).addTo(mapa);
+    if (freteSelecionado.value.ultima_localizacao) {
+      marcadorMotorista.bindPopup(`<b>Local Salvo:</b><br>${freteSelecionado.value.ultima_localizacao}`).openPopup();
     }
   }
+
+  // Captura o clique no mapa para alterar o local
+  mapa.on('click', (e) => {
+    const { lat, lng } = e.latlng;
+    atualizarMarcadorNoMapa(lat, lng, "📍 Nova Posição Selecionada");
+  });
 };
 
 // Atualiza a posição do pino e busca o nome da rua (Geocodificação Reversa)
@@ -151,13 +146,15 @@ const compartilharLocalizacaoReal = () => {
     opcoesGps
   );
 };
-
 const prepararEdicao = (frete) => {
+  // Passa o frete clicado com a Lat/Lng para a caixinha reativa
   freteSelecionado.value = { ...frete };
   mostrarModalEditar.value = true;
   
   nextTick(() => {
     inicializarMapa();
+    
+    // Garante que o Leaflet recalcule o tamanho correto do container após o modal abrir
     setTimeout(() => {
       if (mapa) {
         mapa.invalidateSize();
@@ -165,7 +162,6 @@ const prepararEdicao = (frete) => {
     }, 250);
   });
 };
-
 const carregarDadosDoPainel = async () => {
   await Promise.all([
     freteStore.carregarFretes(),
