@@ -5,6 +5,8 @@ import { useFreteStore } from "../stores/freteStore";
 import api from "../services/api";
 import 'leaflet/dist/leaflet.css'; 
 import L from 'leaflet';
+// 🔥 IMPORTAÇÃO DO MODAL DE ROTAS
+import ModalNovaRota from "../components/ModalNovaRota.vue";
 
 let mapa = null;
 let marcadorMotorista = null;
@@ -16,6 +18,8 @@ const mostrarModalCarga = ref(false);
 const mostrarModalMotorista = ref(false);
 const mostrarModalEditar = ref(false);
 const mostrarModalEditarCarga = ref(false);
+// 🔥 ESTADO REATIVO PARA CONTROLAR A ABERTURA DO MODAL
+const mostrarModalRota = ref(false);
 
 const filtroPrecoMax = ref("");
 const filtroUsuario = ref("");
@@ -49,22 +53,18 @@ const inicializarMapa = () => {
     marcadorMotorista = null;
   }
 
-  // 1. Verifica se o frete selecionado já possui coordenadas salvas no banco
   const temCoordenadas = freteSelecionado.value.latitude && freteSelecionado.value.longitude;
 
-  // 2. Define o centro inicial do mapa: se tiver dados, usa os do frete. Se não, usa o padrão.
   const latInicial = temCoordenadas ? freteSelecionado.value.latitude : -15.7801;
   const lngInicial = temCoordenadas ? freteSelecionado.value.longitude : -47.9292;
-  const zoomInicial = temCoordenadas ? 13 : 4; // Zoom mais próximo se já estiver marcado
+  const zoomInicial = temCoordenadas ? 13 : 4;
 
-  // 3. Inicializa o mapa com as coordenadas corretas
   mapa = L.map('mapa-rastreio').setView([latInicial, lngInicial], zoomInicial);
   
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap contributors'
   }).addTo(mapa);
 
-  // 4. Se o frete já tinha local, adiciona o marcador azul logo na abertura
   if (temCoordenadas) {
     marcadorMotorista = L.marker([latInicial, lngInicial]).addTo(mapa);
     if (freteSelecionado.value.ultima_localizacao) {
@@ -72,14 +72,12 @@ const inicializarMapa = () => {
     }
   }
 
-  // Captura o clique no mapa para alterar o local
   mapa.on('click', (e) => {
     const { lat, lng } = e.latlng;
     atualizarMarcadorNoMapa(lat, lng, "📍 Nova Posição Selecionada");
   });
 };
 
-// Atualiza a posição do pino e busca o nome da rua (Geocodificação Reversa)
 const atualizarMarcadorNoMapa = async (lat, lng, mensagem) => {
   freteSelecionado.value.ultima_localizacao = "Buscando endereço...";
 
@@ -121,7 +119,6 @@ const atualizarMarcadorNoMapa = async (lat, lng, mensagem) => {
   }
 };
 
-// Captura a localização atual (Melhorado para evitar travar em PCs de mesa)
 const compartilharLocalizacaoReal = () => {
   if (!navigator.geolocation) {
     alert("Seu aparelho ou navegador não suporta geolocalização.");
@@ -146,15 +143,14 @@ const compartilharLocalizacaoReal = () => {
     opcoesGps
   );
 };
+
 const prepararEdicao = (frete) => {
-  // Passa o frete clicado com a Lat/Lng para a caixinha reativa
   freteSelecionado.value = { ...frete };
   mostrarModalEditar.value = true;
   
   nextTick(() => {
     inicializarMapa();
     
-    // Garante que o Leaflet recalcule o tamanho correto do container após o modal abrir
     setTimeout(() => {
       if (mapa) {
         mapa.invalidateSize();
@@ -162,6 +158,7 @@ const prepararEdicao = (frete) => {
     }, 250);
   });
 };
+
 const carregarDadosDoPainel = async () => {
   await Promise.all([
     freteStore.carregarFretes(),
@@ -246,7 +243,6 @@ const abrirMotorista = async (id) => {
   mostrarModalMotorista.value = true;
 };
 
-// Salva as edições enviando a localização atualizada para o banco
 const salvarEdicao = async () => {
   try {
     const { id, carga, motorista, veiculo, rota, ultima_localizacao } = freteSelecionado.value;
@@ -268,8 +264,8 @@ const salvarEdicao = async () => {
 };
 
 const prepararEdicaoCarga = (idCarga) => {
-  const lista = freteStore.opcoes?.cargas;
-  const listaLimpa = Array.isArray(lista) ? lista : lista?.results || [];
+  const Mathlista = freteStore.opcoes?.cargas;
+  const listaLimpa = Array.isArray(Mathlista) ? Mathlista : Mathlista?.results || [];
   const cargaOrigem = listaLimpa.find(
     (c) => parseInt(c.id, 10) === parseInt(idCarga, 10),
   );
@@ -314,11 +310,12 @@ const excluirFrete = async (id) => {
 };
 
 const limparFiltros = () => {
-  filtroPrecoMax.value = "";
-  filtroUsuario.value = "";
   buscaCarga.value = "";
+  filtroUsuario.value = "";
+  filtroPrecoMax.value = "";
 };
 </script>
+
 <template>
   <div class="admin-container">
     <header class="admin-header">
@@ -328,10 +325,13 @@ const limparFiltros = () => {
       </div>
       <div class="header-btns">
         <button class="add-button" @click="router.push('/fretes/novo')">
-          + Novo Frete
+           Novo Frete
         </button>
         <button class="add-button" @click="router.push('/cargas/novo')">
-          + Nova carga
+           Nova carga
+        </button>
+        <button class="btn-rota-gold" @click="mostrarModalRota = true">
+            Cadastrar Rota
         </button>
         <button class="back-button" @click="router.back()">Voltar</button>
       </div>
@@ -618,10 +618,13 @@ const limparFiltros = () => {
         </button>
       </div>
     </div>
+
+    <ModalNovaRota :isOpen="mostrarModalRota" @close="mostrarModalRota = false" />
   </div>
 </template>
 
 <style scoped>
+/* [Seus estilos CSS inalterados...] */
 * {
   box-sizing: border-box;
 }
@@ -655,6 +658,24 @@ const limparFiltros = () => {
 .admin-header p {
   margin-top: 6px;
   color: #666;
+}
+
+/* 🔥 CLASSE DE ESTILO PARA O BOTÃO GOLD DA ROTA */
+.btn-rota-gold {
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  transition: 0.2s ease;
+  padding: 12px 20px;
+  border-radius: 10px;
+  background-color: #f39c12;
+  color: white;
+}
+
+.btn-rota-gold:hover {
+  background-color: #d68010;
+  opacity: 0.9;
+  transform: translateY(-1px);
 }
 
 .filter-bar {

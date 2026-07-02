@@ -8,7 +8,6 @@ export const useFreteStore = defineStore('frete', {
     erro: null,
     detalheCarga: null,
     detalheMotorista: null,
-    // Inicialização essencial para o formulário de cadastro não quebrar
     opcoes: {
       cargas: [],
       motoristas: [],
@@ -18,7 +17,6 @@ export const useFreteStore = defineStore('frete', {
   }),
 
   actions: {
-    // 1. Carrega todos os fretes para a tabela principal
     async carregarFretes() {
       this.loading = true;
       try {
@@ -32,11 +30,9 @@ export const useFreteStore = defineStore('frete', {
       }
     },
 
-    // 2. Busca as opções para os campos de seleção (Selects)
     async buscarOpcoesCadastro() {
       this.loading = true;
       try {
-        // Faz chamadas simultâneas para otimizar o carregamento
         const [cargas, motoristas, veiculos, rotas] = await Promise.all([
           api.get('cargas/'),
           api.get('motoristas/'),
@@ -44,7 +40,6 @@ export const useFreteStore = defineStore('frete', {
           api.get('rotas/')
         ]);
 
-        // Atualiza o objeto 'opcoes' com os dados reais do backend
         this.opcoes = {
           cargas: cargas.data.results || cargas.data,
           motoristas: motoristas.data.results || motoristas.data,
@@ -58,21 +53,52 @@ export const useFreteStore = defineStore('frete', {
       }
     },
 
-    // 3. Envia o novo frete para o servidor
+    // 🔥 CORREÇÃO: Forçar o tratamento e envio correto do campo 'distancia'
+    // 🔥 CORREÇÃO DA ROTA: Forçar o tratamento e envio correto do campo 'distancia'
+        async criarRota(dadosRota) {
+  try {
+    const payload = {
+      ponto_inicial: dadosRota.ponto_inicial,
+      ponto_final: dadosRota.ponto_final
+    };
+
+    // Certifique-se de que a URL termine estritamente com '/'
+    const resposta = await api.post('/rotas/', payload);
+    return true;
+  } catch (erro) {
+    console.error("Erro ao criar rota no backend:", erro.response?.data || erro);
+    return false;
+  }
+}, // 🔥 CORREÇÃO DO FRETE: Ajustado para usar 'moeda' em vez de 'tipo_moeda'
     async criarFrete(dadosFrete) {
       try {
-        // Envia o objeto 'form' com os IDs selecionados
-        await api.post('fretes/', dadosFrete);
-        // Recarrega a lista para mostrar o novo item na tabela
+        const payloadFormatado = {
+          carga: parseInt(dadosFrete.carga),
+          motorista: parseInt(dadosFrete.motorista),
+          veiculo: parseInt(dadosFrete.veiculo),
+          rota: parseInt(dadosFrete.rota),
+          valor_frete: parseFloat(dadosFrete.valor_frete),
+          
+          // Alterado de 'tipo_moeda' para 'moeda' (exatamente igual à Model do Django)
+          // Se o front enviar "Reais (R$)", limpe para enviar apenas "Reais", "Euro" ou "Dolar"
+          moeda: dadosFrete.moeda || 'Reais', 
+          
+          status: dadosFrete.status || 'PENDENTE',
+          
+          // Campos opcionais da model mapeados como nulos se não forem preenchidos
+          ultima_localizacao: dadosFrete.ultima_localizacao || null,
+          latitude: dadosFrete.latitude ? parseFloat(dadosFrete.latitude) : null,
+          longitude: dadosFrete.longitude ? parseFloat(dadosFrete.longitude) : null
+        };
+
+        await api.post('fretes/', payloadFormatado);
         await this.carregarFretes(); 
         return true;
       } catch (err) {
-        console.error("Erro ao criar frete:", err.response?.data || err);
+        console.error("Erro ao criar frete no backend:", err.response?.data || err);
         return false;
       }
     },
-
-    // 4. Funções para carregar detalhes (usadas em Modais ou Cards)
     async buscarDetalheCarga(id) {
       try {
         const response = await api.get(`cargas/${id}/`);
