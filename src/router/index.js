@@ -8,6 +8,7 @@ import UsuariosListView from '../views/UsuariosListView.vue'
 import UsuarioHubView from '../views/UsuarioHubView.vue'
 import CriarFreteView from '../views/CriarFreteView.vue'
 import CriarCargaView from '../views/CriarCargaView.vue'
+import MotoristaHubView from '../views/MotoristaHubView.vue'
 const routes = [
   {
     path: '/',
@@ -55,6 +56,11 @@ const routes = [
   component: CriarCargaView,
   meta: { requiresAdmin: false }
  },
+ {
+  path: '/motorista-hub',
+  name: 'motorista-hub',
+  component: MotoristaHubView
+},
 ]
 
 const router = createRouter({

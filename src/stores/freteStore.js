@@ -3,7 +3,9 @@ import api from '../services/api';
 
 export const useFreteStore = defineStore('frete', {
   state: () => ({
-    listaFretes: [],
+    fretesCliente: [],    // 📦 Guarda apenas os fretes solicitados
+    fretesMotorista: [],  // 🚚 Guarda apenas os fretes a realizar
+    listaFretes: [],     // Fallback / Visão geral
     loading: false,
     erro: null,
     detalheCarga: null,
@@ -17,13 +19,21 @@ export const useFreteStore = defineStore('frete', {
   }),
 
   actions: {
-    async carregarFretes() {
+    // 🔥 Separa os dados recebidos por papel (cliente x motorista) para não misturar no estado
+    async carregarFretes(tipo = 'cliente') {
       this.loading = true;
       try {
-        const response = await api.get('fretes/?limit=1000');
-        this.listaFretes = response.data.results || response.data;
+        const response = await api.get(`fretes/?tipo=${tipo}&limit=1000`);
+        const dados = response.data.results || response.data;
+
+        if (tipo === 'motorista') {
+          this.fretesMotorista = dados;
+        } else {
+          this.fretesCliente = dados;
+        }
+        this.listaFretes = dados;
       } catch (err) {
-        console.error("Erro ao carregar fretes:", err);
+        console.error(`Erro ao carregar fretes (${tipo}):`, err);
         this.erro = "Não foi possível carregar a lista de fretes.";
       } finally {
         this.loading = false;
@@ -53,23 +63,20 @@ export const useFreteStore = defineStore('frete', {
       }
     },
 
-    // 🔥 CORREÇÃO: Forçar o tratamento e envio correto do campo 'distancia'
-    // 🔥 CORREÇÃO DA ROTA: Forçar o tratamento e envio correto do campo 'distancia'
-        async criarRota(dadosRota) {
-  try {
-    const payload = {
-      ponto_inicial: dadosRota.ponto_inicial,
-      ponto_final: dadosRota.ponto_final
-    };
+    async criarRota(dadosRota) {
+      try {
+        const payload = {
+          ponto_inicial: dadosRota.ponto_inicial,
+          ponto_final: dadosRota.ponto_final
+        };
+        await api.post('/rotas/', payload);
+        return true;
+      } catch (erro) {
+        console.error("Erro ao criar rota:", erro.response?.data || erro);
+        return false;
+      }
+    },
 
-    // Certifique-se de que a URL termine estritamente com '/'
-    const resposta = await api.post('/rotas/', payload);
-    return true;
-  } catch (erro) {
-    console.error("Erro ao criar rota no backend:", erro.response?.data || erro);
-    return false;
-  }
-}, // 🔥 CORREÇÃO DO FRETE: Ajustado para usar 'moeda' em vez de 'tipo_moeda'
     async criarFrete(dadosFrete) {
       try {
         const payloadFormatado = {
@@ -78,27 +85,22 @@ export const useFreteStore = defineStore('frete', {
           veiculo: parseInt(dadosFrete.veiculo),
           rota: parseInt(dadosFrete.rota),
           valor_frete: parseFloat(dadosFrete.valor_frete),
-          
-          // Alterado de 'tipo_moeda' para 'moeda' (exatamente igual à Model do Django)
-          // Se o front enviar "Reais (R$)", limpe para enviar apenas "Reais", "Euro" ou "Dolar"
-          moeda: dadosFrete.moeda || 'Reais', 
-          
+          moeda: dadosFrete.moeda || 'Reais',
           status: dadosFrete.status || 'PENDENTE',
-          
-          // Campos opcionais da model mapeados como nulos se não forem preenchidos
           ultima_localizacao: dadosFrete.ultima_localizacao || null,
           latitude: dadosFrete.latitude ? parseFloat(dadosFrete.latitude) : null,
           longitude: dadosFrete.longitude ? parseFloat(dadosFrete.longitude) : null
         };
 
         await api.post('fretes/', payloadFormatado);
-        await this.carregarFretes(); 
+        await this.carregarFretes('cliente'); 
         return true;
       } catch (err) {
-        console.error("Erro ao criar frete no backend:", err.response?.data || err);
+        console.error("Erro ao criar frete:", err.response?.data || err);
         return false;
       }
     },
+
     async buscarDetalheCarga(id) {
       try {
         const response = await api.get(`cargas/${id}/`);
@@ -115,6 +117,22 @@ export const useFreteStore = defineStore('frete', {
       } catch (err) {
         console.error("Erro ao carregar detalhe do motorista:", err);
       }
-    }
+    },
+
+    async atualizarFreteMotorista(id, status, ultimaLocalizacao) {
+  try {
+    const payload = {};
+    if (status) payload.status = status;
+    if (ultimaLocalizacao) payload.ultima_localizacao = ultimaLocalizacao;
+
+    // Adiciona ?tipo=motorista para garantir que caia na consulta do motorista
+    await api.patch(`fretes/${id}/?tipo=motorista`, payload);
+    await this.carregarFretes('motorista');
+    return true;
+  } catch (err) {
+    console.error("Erro ao atualizar frete:", err.response?.data || err);
+    return false;
+  }
+}
   }
 });
