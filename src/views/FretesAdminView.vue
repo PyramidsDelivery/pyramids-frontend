@@ -3,9 +3,8 @@ import { computed, onMounted, ref, nextTick } from "vue";
 import { useRouter } from "vue-router";
 import { useFreteStore } from "../stores/freteStore";
 import api from "../services/api";
-import 'leaflet/dist/leaflet.css'; 
-import L from 'leaflet';
-// 🔥 IMPORTAÇÃO DO MODAL DE ROTAS
+import "leaflet/dist/leaflet.css";
+import L from "leaflet";
 import ModalNovaRota from "../components/ModalNovaRota.vue";
 
 let mapa = null;
@@ -18,7 +17,6 @@ const mostrarModalCarga = ref(false);
 const mostrarModalMotorista = ref(false);
 const mostrarModalEditar = ref(false);
 const mostrarModalEditarCarga = ref(false);
-// 🔥 ESTADO REATIVO PARA CONTROLAR A ABERTURA DO MODAL
 const mostrarModalRota = ref(false);
 
 const filtroPrecoMax = ref("");
@@ -53,28 +51,31 @@ const inicializarMapa = () => {
     marcadorMotorista = null;
   }
 
-  const temCoordenadas = freteSelecionado.value.latitude && freteSelecionado.value.longitude;
+  const temCoordenadas =
+    freteSelecionado.value.latitude && freteSelecionado.value.longitude;
 
   const latInicial = temCoordenadas ? freteSelecionado.value.latitude : -15.7801;
   const lngInicial = temCoordenadas ? freteSelecionado.value.longitude : -47.9292;
   const zoomInicial = temCoordenadas ? 13 : 4;
 
-  mapa = L.map('mapa-rastreio').setView([latInicial, lngInicial], zoomInicial);
-  
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors'
+  mapa = L.map("mapa-rastreio").setView([latInicial, lngInicial], zoomInicial);
+
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "© OpenStreetMap contributors",
   }).addTo(mapa);
 
   if (temCoordenadas) {
     marcadorMotorista = L.marker([latInicial, lngInicial]).addTo(mapa);
     if (freteSelecionado.value.ultima_localizacao) {
-      marcadorMotorista.bindPopup(`<b>Local Salvo:</b><br>${freteSelecionado.value.ultima_localizacao}`).openPopup();
+      marcadorMotorista
+        .bindPopup(`<b>Local Salvo:</b><br>${freteSelecionado.value.ultima_localizacao}`)
+        .openPopup();
     }
   }
 
-  mapa.on('click', (e) => {
+  mapa.on("click", (e) => {
     const { lat, lng } = e.latlng;
-    atualizarMarcadorNoMapa(lat, lng, "📍 Nova Posição Selecionada");
+    atualizarMarcadorNoMapa(lat, lng, "Nova posição selecionada");
   });
 };
 
@@ -91,9 +92,7 @@ const atualizarMarcadorNoMapa = async (lat, lng, mensagem) => {
   try {
     const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
     const resposta = await fetch(url, {
-      headers: {
-        'Accept-Language': 'pt-BR'
-      }
+      headers: { "Accept-Language": "pt-BR" },
     });
     const dados = await resposta.json();
 
@@ -105,17 +104,21 @@ const atualizarMarcadorNoMapa = async (lat, lng, mensagem) => {
       const estado = adr.state ? ` - ${adr.state}` : "";
 
       const enderecoCompleto = `${rua}${numero}, ${cidade}${estado}`;
-      
+
       freteSelecionado.value.ultima_localizacao = enderecoCompleto;
       marcadorMotorista.bindPopup(`<b>${mensagem}</b><br>${enderecoCompleto}`).openPopup();
     } else {
       freteSelecionado.value.ultima_localizacao = `Lat: ${lat.toFixed(5)}, Lon: ${lng.toFixed(5)}`;
-      marcadorMotorista.bindPopup(`<b>${mensagem}</b><br>Lat: ${lat.toFixed(5)}, Lon: ${lng.toFixed(5)}`).openPopup();
+      marcadorMotorista
+        .bindPopup(`<b>${mensagem}</b><br>Lat: ${lat.toFixed(5)}, Lon: ${lng.toFixed(5)}`)
+        .openPopup();
     }
   } catch (error) {
     console.error("Erro ao buscar o endereço:", error);
     freteSelecionado.value.ultima_localizacao = `Lat: ${lat.toFixed(5)}, Lon: ${lng.toFixed(5)}`;
-    marcadorMotorista.bindPopup(`<b>${mensagem}</b><br>Lat: ${lat.toFixed(5)}, Lon: ${lng.toFixed(5)}`).openPopup();
+    marcadorMotorista
+      .bindPopup(`<b>${mensagem}</b><br>Lat: ${lat.toFixed(5)}, Lon: ${lng.toFixed(5)}`)
+      .openPopup();
   }
 };
 
@@ -125,16 +128,12 @@ const compartilharLocalizacaoReal = () => {
     return;
   }
 
-  const opcoesGps = { 
-    enableHighAccuracy: false, 
-    timeout: 5000, 
-    maximumAge: 0 
-  };
+  const opcoesGps = { enableHighAccuracy: false, timeout: 5000, maximumAge: 0 };
 
   navigator.geolocation.getCurrentPosition(
     (position) => {
       const { latitude, longitude } = position.coords;
-      atualizarMarcadorNoMapa(latitude, longitude, "🚚 Minha Localização Atual");
+      atualizarMarcadorNoMapa(latitude, longitude, "Minha localização atual");
     },
     (error) => {
       console.error("Erro do GPS:", error);
@@ -147,14 +146,11 @@ const compartilharLocalizacaoReal = () => {
 const prepararEdicao = (frete) => {
   freteSelecionado.value = { ...frete };
   mostrarModalEditar.value = true;
-  
+
   nextTick(() => {
     inicializarMapa();
-    
     setTimeout(() => {
-      if (mapa) {
-        mapa.invalidateSize();
-      }
+      if (mapa) mapa.invalidateSize();
     }, 250);
   });
 };
@@ -169,8 +165,9 @@ const carregarDadosDoPainel = async () => {
 onMounted(carregarDadosDoPainel);
 
 router.afterEach((to) => {
-  if (to.path.includes("admin") || to.name?.includes("admin"))
+  if (to.path.includes("admin") || to.name?.includes("admin")) {
     carregarDadosDoPainel();
+  }
 });
 
 const listaFretes = computed(() => {
@@ -181,7 +178,7 @@ const listaFretes = computed(() => {
 const listaUsuariosUnicos = computed(() => {
   return [
     ...new Set(
-      listaFretes.value.map((f) => f.usuario_email).filter((e) => e?.trim()),
+      listaFretes.value.map((f) => f.usuario_email).filter((e) => e?.trim())
     ),
   ].sort();
 });
@@ -190,8 +187,8 @@ const obterDescricaoCarga = (id) => {
   const lista = freteStore.opcoes?.cargas;
   const listaLimpa = Array.isArray(lista) ? lista : lista?.results || [];
   return (
-    listaLimpa.find((c) => parseInt(c.id, 10) === parseInt(id, 10))
-      ?.descricao || `Carga #${id}`
+    listaLimpa.find((c) => parseInt(c.id, 10) === parseInt(id, 10))?.descricao ||
+    `Carga #${id}`
   );
 };
 
@@ -252,7 +249,7 @@ const salvarEdicao = async () => {
       motorista: motorista ? parseInt(motorista, 10) : null,
       veiculo: veiculo ? parseInt(veiculo, 10) : null,
       rota: rota ? parseInt(rota, 10) : null,
-      ultima_localizacao: ultima_localizacao || ""
+      ultima_localizacao: ultima_localizacao || "",
     };
     await api.put(`fretes/${id}/`, dadosFormatados);
     mostrarModalEditar.value = false;
@@ -264,10 +261,10 @@ const salvarEdicao = async () => {
 };
 
 const prepararEdicaoCarga = (idCarga) => {
-  const Mathlista = freteStore.opcoes?.cargas;
-  const listaLimpa = Array.isArray(Mathlista) ? Mathlista : Mathlista?.results || [];
+  const listaOrigem = freteStore.opcoes?.cargas;
+  const listaLimpa = Array.isArray(listaOrigem) ? listaOrigem : listaOrigem?.results || [];
   const cargaOrigem = listaLimpa.find(
-    (c) => parseInt(c.id, 10) === parseInt(idCarga, 10),
+    (c) => parseInt(c.id, 10) === parseInt(idCarga, 10)
   );
   if (cargaOrigem) {
     cargaSelecionada.value = { ...cargaOrigem };
@@ -279,15 +276,15 @@ const salvarEdicaoCarga = async () => {
   try {
     const dadosParaEnviar = { ...cargaSelecionada.value };
 
-    if (typeof dadosParaEnviar.foto === 'string') {
+    if (typeof dadosParaEnviar.foto === "string") {
       delete dadosParaEnviar.foto;
     }
 
-    if (!dadosParaEnviar.unidade) dadosParaEnviar.unidade = 'kg';
-    if (!dadosParaEnviar.movera) dadosParaEnviar.movera = 'Reais';
+    if (!dadosParaEnviar.unidade) dadosParaEnviar.unidade = "kg";
+    if (!dadosParaEnviar.movera) dadosParaEnviar.movera = "Reais";
 
     await api.put(`cargas/${dadosParaEnviar.id}/`, dadosParaEnviar);
-    
+
     mostrarModalEditarCarga.value = false;
     await carregarDadosDoPainel();
   } catch (error) {
@@ -301,7 +298,7 @@ const excluirFrete = async (id) => {
     try {
       await api.delete(`fretes/${id}/`);
       alert(`Frete #${id} excluído com sucesso!`);
-      await carregarDadosDoPainel(); 
+      await carregarDadosDoPainel();
     } catch (error) {
       console.error("Erro ao excluir frete:", error);
       alert("Não foi possível excluir o frete. Verifique se existem dependências.");
@@ -324,22 +321,22 @@ const limparFiltros = () => {
         <p>Gerencie cargas e acompanhe os status em tempo real.</p>
       </div>
       <div class="header-btns">
-        <button class="add-button" @click="router.push('/fretes/novo')">
-           Novo Frete
+        <button class="btn btn-outline" @click="router.push('/fretes/novo')">
+          Novo Frete
         </button>
-        <button class="add-button" @click="router.push('/cargas/novo')">
-           Nova carga
+        <button class="btn btn-outline" @click="router.push('/cargas/novo')">
+          Nova Carga
         </button>
-        <button class="btn-rota-gold" @click="mostrarModalRota = true">
-            Cadastrar Rota
+        <button class="btn btn-primary" @click="mostrarModalRota = true">
+          Cadastrar Rota
         </button>
-        <button class="back-button" @click="router.back()">Voltar</button>
+        <button class="btn btn-ghost" @click="router.back()">Voltar</button>
       </div>
     </header>
 
     <div class="filter-bar">
       <div class="filter-group">
-        <label for="busca-carga">Pesquisar Carga:</label>
+        <label for="busca-carga">Pesquisar Carga</label>
         <input
           id="busca-carga"
           type="text"
@@ -349,20 +346,16 @@ const limparFiltros = () => {
         />
       </div>
       <div class="filter-group">
-        <label for="filtro-user">Solicitante:</label>
+        <label for="filtro-user">Solicitante</label>
         <select id="filtro-user" v-model="filtroUsuario" class="filter-select">
           <option value="">Todos os usuários</option>
-          <option
-            v-for="email in listaUsuariosUnicos"
-            :key="email"
-            :value="email"
-          >
+          <option v-for="email in listaUsuariosUnicos" :key="email" :value="email">
             {{ email }}
           </option>
         </select>
       </div>
       <div class="filter-group">
-        <label for="preco-max">Preço Máximo (R$):</label>
+        <label for="preco-max">Preço Máximo (R$)</label>
         <input
           id="preco-max"
           type="number"
@@ -372,7 +365,7 @@ const limparFiltros = () => {
         />
       </div>
       <button
-        class="clear-filters-btn"
+        class="btn btn-ghost"
         @click="limparFiltros"
         v-if="buscaCarga || filtroUsuario || filtroPrecoMax"
       >
@@ -400,27 +393,25 @@ const limparFiltros = () => {
         <tbody>
           <tr v-for="frete in fretesFiltrados" :key="frete.id">
             <td class="id-cell">#{{ frete.id }}</td>
-            <td class="user-cell">
-              {{ frete.usuario_email || "Não informado" }}
-            </td>
+            <td class="user-cell">{{ frete.usuario_email || "Não informado" }}</td>
             <td class="clickable-cell" @click="abrirCarga(frete.carga)">
               {{ obterDescricaoCarga(frete.carga) }}
             </td>
             <td class="clickable-cell" @click="abrirMotorista(frete.motorista)">
               {{ obterNomeMotorista(frete.motorista) }}
             </td>
-            <td class="price-cell">
-              {{ frete.valor_frete }} {{ frete.moeda }}
-            </td>
+            <td class="price-cell">{{ frete.valor_frete }} {{ frete.moeda }}</td>
             <td>
               <span :class="['status-badge', getStatusClass(frete.status)]">
                 {{ frete.status }}
               </span>
             </td>
             <td class="actions-cell">
-              <button class="edit-btn" @click="prepararEdicao(frete)">Editar Frete</button>
-              <button class="edit-carga-btn" @click="prepararEdicaoCarga(frete.carga)">Editar Carga</button>
-              <button class="delete-btn" @click="excluirFrete(frete.id)">Excluir</button>
+              <button class="row-btn" @click="prepararEdicao(frete)">Editar</button>
+              <button class="row-btn" @click="prepararEdicaoCarga(frete.carga)">Carga</button>
+              <button class="row-btn row-btn-danger" @click="excluirFrete(frete.id)">
+                Excluir
+              </button>
             </td>
           </tr>
         </tbody>
@@ -431,95 +422,71 @@ const limparFiltros = () => {
       Nenhum frete corresponde aos filtros aplicados ou banco vazio.
     </div>
 
-    <div
-      v-if="mostrarModalEditar"
-      class="modal-overlay"
-      @click.self="mostrarModalEditar = false"
-    >
+    <div v-if="mostrarModalEditar" class="modal-overlay" @click.self="mostrarModalEditar = false">
       <div class="modal-content modal-form">
         <h3>Editar Frete #{{ freteSelecionado.id }}</h3>
         <hr />
-        
+
         <div class="form-grid">
-          <label>Carga:</label>
+          <label>Carga</label>
           <select v-model="freteSelecionado.carga">
-            <option
-              v-for="c in freteStore.opcoes.cargas"
-              :key="c.id"
-              :value="c.id"
-            >
+            <option v-for="c in freteStore.opcoes.cargas" :key="c.id" :value="c.id">
               {{ c.descricao }}
             </option>
           </select>
 
-          <label>Motorista:</label>
+          <label>Motorista</label>
           <select v-model="freteSelecionado.motorista">
-            <option
-              v-for="m in freteStore.opcoes.motoristas"
-              :key="m.id"
-              :value="m.id"
-            >
+            <option v-for="m in freteStore.opcoes.motoristas" :key="m.id" :value="m.id">
               {{ m.nome }}
             </option>
           </select>
 
-          <label>Veículo:</label>
+          <label>Veículo</label>
           <select v-model="freteSelecionado.veiculo">
-            <option
-              v-for="v in freteStore.opcoes.veiculos"
-              :key="v.id"
-              :value="v.id"
-            >
+            <option v-for="v in freteStore.opcoes.veiculos" :key="v.id" :value="v.id">
               {{ v.modelo }} ({{ v.placa }})
             </option>
           </select>
 
-          <label>Rota:</label>
+          <label>Rota</label>
           <select v-model="freteSelecionado.rota">
-            <option
-              v-for="r in freteStore.opcoes.rotas"
-              :key="r.id"
-              :value="r.id"
-            >
+            <option v-for="r in freteStore.opcoes.rotas" :key="r.id" :value="r.id">
               {{ r.nome || `${r.ponto_inicial} → ${r.ponto_final}` }}
             </option>
           </select>
 
-          <label>Moeda:</label>
+          <label>Moeda</label>
           <select v-model="freteSelecionado.moeda">
             <option value="Reais">Reais (R$)</option>
             <option value="Euro">Euro (€)</option>
             <option value="Dolar">Dólar ($)</option>
           </select>
 
-          <label>Valor do Frete:</label>
-          <input
-            type="number"
-            v-model="freteSelecionado.valor_frete"
-            step="0.01"
-          />
+          <label>Valor do Frete</label>
+          <input type="number" v-model="freteSelecionado.valor_frete" step="0.01" />
 
-          <label>Status:</label>
+          <label>Status</label>
           <select v-model="freteSelecionado.status">
             <option value="Pendente">Pendente</option>
             <option value="Em andamento">Em andamento</option>
             <option value="Entregue">Entregue</option>
           </select>
 
-          <label>Última Localização:</label>
-          <input 
-            type="text" 
-            v-model="freteSelecionado.ultima_localizacao" 
+          <label>Última Localização</label>
+          <input
+            type="text"
+            v-model="freteSelecionado.ultima_localizacao"
             placeholder="Coordenadas ou ponto de referência"
           />
         </div>
 
         <div class="mapa-secao-isolada">
-          <label class="mapa-titulo">Rastreamento por Mapa Interativo:</label>
+          <label class="mapa-titulo">Rastreamento por Mapa Interativo</label>
           <div id="mapa-rastreio" class="mapa-container"></div>
           <div class="mapa-acoes">
-            <button type="button" class="gps-btn" @click="compartilharLocalizacaoReal">
-              📡 Compartilhar Minha Localização Atual
+            <button type="button" class="btn btn-outline btn-small" @click="compartilharLocalizacaoReal">
+              Compartilhar Minha Localização Atual
             </button>
             <p class="mapa-ajuda">
               * Clique em qualquer lugar do mapa para fixar uma localização manualmente, ou ative o GPS para atualizar em tempo real.
@@ -528,37 +495,29 @@ const limparFiltros = () => {
         </div>
 
         <div class="modal-actions">
-          <button class="save-btn" @click="salvarEdicao">
-            Salvar Alterações
-          </button>
-          <button class="close-btn" @click="mostrarModalEditar = false">
-            Cancelar
-          </button>
+          <button class="btn btn-primary" @click="salvarEdicao">Salvar Alterações</button>
+          <button class="btn btn-ghost" @click="mostrarModalEditar = false">Cancelar</button>
         </div>
       </div>
     </div>
 
-    <div
-      v-if="mostrarModalEditarCarga"
-      class="modal-overlay"
-      @click.self="mostrarModalEditarCarga = false"
-    >
+    <div v-if="mostrarModalEditarCarga" class="modal-overlay" @click.self="mostrarModalEditarCarga = false">
       <div class="modal-content modal-form">
         <h3>Editar Carga #{{ cargaSelecionada.id }}</h3>
         <hr />
         <div class="form-grid">
-          <label>Descrição da Carga:</label>
+          <label>Descrição da Carga</label>
           <input type="text" v-model="cargaSelecionada.descricao" />
-          <label>Peso:</label>
+          <label>Peso</label>
           <input type="number" v-model="cargaSelecionada.peso" step="0.1" />
-          <label>Unidade de Medida:</label>
+          <label>Unidade de Medida</label>
           <select v-model="cargaSelecionada.unidade">
             <option value="kg">Quilos (kg)</option>
             <option value="t">Toneladas (t)</option>
           </select>
-          <label>Valor Declarado:</label>
+          <label>Valor Declarado</label>
           <input type="number" v-model="cargaSelecionada.valor" step="0.01" />
-          <label>Moeda do Valor:</label>
+          <label>Moeda do Valor</label>
           <select v-model="cargaSelecionada.movera">
             <option value="Reais">Reais (R$)</option>
             <option value="Euro">Euro (€)</option>
@@ -566,12 +525,8 @@ const limparFiltros = () => {
           </select>
         </div>
         <div class="modal-actions">
-          <button class="save-btn" @click="salvarEdicaoCarga">
-            Atualizar Carga
-          </button>
-          <button class="close-btn" @click="mostrarModalEditarCarga = false">
-            Cancelar
-          </button>
+          <button class="btn btn-primary" @click="salvarEdicaoCarga">Atualizar Carga</button>
+          <button class="btn btn-ghost" @click="mostrarModalEditarCarga = false">Cancelar</button>
         </div>
       </div>
     </div>
@@ -582,29 +537,23 @@ const limparFiltros = () => {
         <hr />
         <div v-if="freteStore.detalheCarga" class="details-grid">
           <p><strong>Descrição:</strong> {{ freteStore.detalheCarga.descricao }}</p>
-          <p><strong>Peso:</strong> {{ freteStore.detalheCarga.peso }} {{ freteStore.detalheCarga.unidade || 'kg' }}</p>
+          <p><strong>Peso:</strong> {{ freteStore.detalheCarga.peso }} {{ freteStore.detalheCarga.unidade || "kg" }}</p>
           <div class="foto-produto-container">
             <span class="foto-label"><strong>Foto da Carga:</strong></span>
-            <img 
-              v-if="freteStore.detalheCarga.foto" 
-              :src="freteStore.detalheCarga.foto" 
-              alt="Foto da carga" 
-              class="foto-detalhe" 
+            <img
+              v-if="freteStore.detalheCarga.foto"
+              :src="freteStore.detalheCarga.foto"
+              alt="Foto da carga"
+              class="foto-detalhe"
             />
-            <div v-else class="sem-foto-placeholder">
-              Sem foto cadastrada
-            </div>
+            <div v-else class="sem-foto-placeholder">Sem foto cadastrada</div>
           </div>
         </div>
-        <button class="close-btn" @click="mostrarModalCarga = false">Fechar</button>
+        <button class="btn btn-ghost" @click="mostrarModalCarga = false">Fechar</button>
       </div>
     </div>
 
-    <div
-      v-if="mostrarModalMotorista"
-      class="modal-overlay"
-      @click.self="mostrarModalMotorista = false"
-    >
+    <div v-if="mostrarModalMotorista" class="modal-overlay" @click.self="mostrarModalMotorista = false">
       <div class="modal-content">
         <h3>Informações do Motorista</h3>
         <hr />
@@ -613,9 +562,7 @@ const limparFiltros = () => {
           <p><strong>CNH:</strong> {{ freteStore.detalheMotorista.cnh }}</p>
           <p><strong>Telefone:</strong> {{ freteStore.detalheMotorista.telefone }}</p>
         </div>
-        <button class="close-btn" @click="mostrarModalMotorista = false">
-          Fechar
-        </button>
+        <button class="btn btn-ghost" @click="mostrarModalMotorista = false">Fechar</button>
       </div>
     </div>
 
@@ -624,7 +571,6 @@ const limparFiltros = () => {
 </template>
 
 <style scoped>
-/* [Seus estilos CSS inalterados...] */
 * {
   box-sizing: border-box;
 }
@@ -632,62 +578,130 @@ const limparFiltros = () => {
 .admin-container {
   min-height: 100vh;
   padding: 40px;
-  background: #f5f5f5;
-  font-family: "Inter", sans-serif;
-  color: #1a1a1a;
+  background: #f2f2f2;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  color: #141414;
 }
+
+/* ---------- Header ---------- */
 
 .admin-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  margin-bottom: 30px;
-  padding-left: 20px;
-  border-left: 5px solid #111;
+  flex-wrap: wrap;
+  margin-bottom: 28px;
 }
 
 .admin-header h1 {
   margin: 0;
   font-size: 2rem;
   font-weight: 800;
-  letter-spacing: -1px;
-  text-transform: uppercase;
+  letter-spacing: -0.5px;
 }
 
 .admin-header p {
   margin-top: 6px;
-  color: #666;
+  color: #6b6b6b;
+  font-size: 0.95rem;
 }
 
-/* 🔥 CLASSE DE ESTILO PARA O BOTÃO GOLD DA ROTA */
-.btn-rota-gold {
+.header-btns {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ---------- Buttons ---------- */
+
+.btn {
   border: none;
   cursor: pointer;
   font-weight: 600;
-  transition: 0.2s ease;
-  padding: 12px 20px;
+  font-size: 0.9rem;
+  padding: 11px 18px;
   border-radius: 10px;
-  background-color: #f39c12;
-  color: white;
+  transition: transform 0.2s ease, opacity 0.2s ease, background 0.2s ease, border-color 0.2s ease;
 }
 
-.btn-rota-gold:hover {
-  background-color: #d68010;
-  opacity: 0.9;
+.btn:hover {
   transform: translateY(-1px);
 }
+
+.btn-primary {
+  background: #141414;
+  color: #ffffff;
+}
+
+.btn-primary:hover {
+  opacity: 0.88;
+}
+
+.btn-outline {
+  background: #ffffff;
+  color: #141414;
+  border: 1px solid #d8d8d8;
+}
+
+.btn-outline:hover {
+  border-color: #141414;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: #6b6b6b;
+  border: 1px solid transparent;
+}
+
+.btn-ghost:hover {
+  color: #141414;
+  background: #eaeaea;
+}
+
+.btn-small {
+  padding: 8px 14px;
+  font-size: 0.82rem;
+}
+
+.row-btn {
+  border: 1px solid #d8d8d8;
+  background: #ffffff;
+  color: #141414;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.row-btn:hover {
+  border-color: #141414;
+}
+
+.row-btn-danger {
+  color: #b3261e;
+  border-color: #f0d3d1;
+}
+
+.row-btn-danger:hover {
+  border-color: #b3261e;
+  background: #fdf3f2;
+}
+
+/* ---------- Filter bar ---------- */
 
 .filter-bar {
   display: flex;
   flex-wrap: wrap;
   gap: 20px;
-  background-color: #f8f9fa;
-  padding: 15px 20px;
-  border-radius: 8px;
-  margin-bottom: 20px;
+  background: #ffffff;
+  padding: 18px 20px;
+  border-radius: 14px;
+  margin-bottom: 24px;
   align-items: flex-end;
-  border: 1px solid #e9ecef;
+  border: 1px solid #e0e0e0;
 }
 
 .filter-group {
@@ -700,127 +714,41 @@ const limparFiltros = () => {
 
 .filter-group label,
 .form-grid label {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 600;
-  color: #495057;
+  color: #6b6b6b;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
 }
 
 .filter-input,
 .filter-select,
 .form-grid select,
 .form-grid input {
-  padding: 8px 12px;
-  border: 1px solid #ced4da;
-  border-radius: 4px;
+  padding: 10px 12px;
+  border: 1px solid #d8d8d8;
+  border-radius: 8px;
   font-size: 0.9rem;
-  background: white;
+  background: #ffffff;
+  color: #141414;
   width: 100%;
 }
 
-.header-btns,
-.actions-cell,
-.modal-actions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
+.filter-input:focus,
+.filter-select:focus,
+.form-grid select:focus,
+.form-grid input:focus {
+  outline: none;
+  border-color: #141414;
 }
 
-.add-button,
-.back-button,
-.edit-btn,
-.edit-carga-btn,
-.save-btn,
-.close-btn,
-.clear-filters-btn,
-.delete-btn,
-.gps-btn {
-  border: none;
-  cursor: pointer;
-  font-weight: 600;
-  transition: 0.2s ease;
-}
-
-.add-button,
-.back-button {
-  padding: 12px 20px;
-  border-radius: 10px;
-  background: #111;
-  color: white;
-}
-
-.back-button {
-  background: #e0e0e0;
-  color: #111;
-}
-
-.edit-btn {
-  background: #f0a500;
-  color: white;
-  padding: 6px 12px;
-  border-radius: 4px;
-}
-
-.edit-carga-btn {
-  background: #007bff;
-  color: white;
-  padding: 6px 12px;
-  border-radius: 4px;
-}
-
-.delete-btn {
-  background: #dc3545;
-  color: white;
-  padding: 6px 12px;
-  border-radius: 4px;
-}
-
-.save-btn {
-  background: #28a745;
-  color: white;
-  padding: 10px 15px;
-  border-radius: 4px;
-}
-
-.close-btn {
-  background: #333;
-  color: white;
-  padding: 10px;
-  border-radius: 4px;
-}
-
-.clear-filters-btn {
-  background: #dc3545;
-  color: white;
-  padding: 8px 12px;
-  border-radius: 4px;
-  font-size: 0.9rem;
-}
-
-.gps-btn {
-  background-color: #007bff;
-  color: white;
-  padding: 10px 16px;
-  border-radius: 6px;
-  align-self: flex-start;
-}
-
-.add-button:hover,
-.back-button:hover,
-.edit-btn:hover,
-.edit-carga-btn:hover,
-.save-btn:hover,
-.clear-filters-btn:hover,
-.delete-btn:hover,
-.gps-btn:hover {
-  opacity: 0.9;
-  transform: translateY(-1px);
-}
+/* ---------- Table ---------- */
 
 .table-wrapper {
   overflow-x: auto;
-  background: white;
+  background: #ffffff;
   border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e0e0e0;
 }
 
 .fretes-table {
@@ -829,24 +757,28 @@ const limparFiltros = () => {
 }
 
 .fretes-table thead {
-  background: #111;
+  background: #141414;
 }
 
 .fretes-table th {
-  padding: 18px 20px;
-  color: white;
+  padding: 16px 20px;
+  color: #ffffff;
   text-align: left;
-  font-size: 0.85rem;
+  font-size: 0.78rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.8px;
 }
 
 .fretes-table td {
-  padding: 18px 20px;
-  border-bottom: 1px solid #ececec;
-  font-size: 0.95rem;
-  color: #444;
+  padding: 16px 20px;
+  border-bottom: 1px solid #eeeeee;
+  font-size: 0.9rem;
+  color: #333333;
+}
+
+.fretes-table tbody tr:last-child td {
+  border-bottom: none;
 }
 
 .fretes-table tbody tr:hover {
@@ -854,70 +786,89 @@ const limparFiltros = () => {
 }
 
 .id-cell {
-  color: #8b8b8b;
+  color: #9a9a9a;
   font-family: monospace;
 }
 
 .price-cell {
   font-weight: 700;
-  color: #111;
+  color: #141414;
 }
 
 .user-cell {
-  color: #555;
-  font-size: 0.9rem;
+  color: #555555;
+  font-size: 0.88rem;
   font-weight: 500;
 }
 
 .clickable-cell {
-  color: #3498db;
+  color: #141414;
   text-decoration: underline;
+  text-underline-offset: 2px;
   cursor: pointer;
-  font-weight: bold;
+  font-weight: 600;
+}
+
+.clickable-cell:hover {
+  color: #555555;
+}
+
+.actions-cell {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .empty-results-container {
   text-align: center;
-  padding: 40px;
-  color: #6c757d;
-  background: #f8f9fa;
-  border-radius: 8px;
-  border: 1px dashed #ced4da;
+  padding: 48px;
+  color: #6b6b6b;
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px dashed #d8d8d8;
 }
+
+/* ---------- Status badges ---------- */
 
 .status-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-width: 120px;
-  padding: 8px 14px;
+  padding: 7px 14px;
   border-radius: 999px;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
+  letter-spacing: 0.4px;
+  border: 1px solid transparent;
 }
 
 .status-pendente {
-  background: #fff3cd;
-  color: #856404;
+  background: #f2f2f2;
+  color: #6b6b6b;
+  border-color: #d8d8d8;
 }
 
 .status-concluido,
 .status-entregue {
-  background: #111;
-  color: white;
+  background: #141414;
+  color: #ffffff;
 }
 
 .status-em-transito,
 .status-em-andamento {
-  background: #e3f2fd;
-  color: #0d47a1;
+  background: #ffffff;
+  color: #141414;
+  border-color: #141414;
 }
 
 .status-default {
-  background: #e0e0e0;
-  color: #444;
+  background: #eeeeee;
+  color: #6b6b6b;
 }
+
+/* ---------- Modals ---------- */
 
 .modal-overlay {
   position: fixed;
@@ -925,7 +876,8 @@ const limparFiltros = () => {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(20, 20, 20, 0.6);
+  backdrop-filter: blur(2px);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -933,15 +885,28 @@ const limparFiltros = () => {
 }
 
 .modal-content {
-  background: white;
+  background: #ffffff;
   padding: 2rem;
-  border-radius: 8px;
+  border-radius: 16px;
   min-width: 320px;
   max-width: 500px;
   width: 100%;
-  color: #333;
+  color: #141414;
   max-height: 90vh;
   overflow-y: auto;
+  border: 1px solid #e0e0e0;
+}
+
+.modal-content h3 {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+
+.modal-content hr {
+  border: none;
+  border-top: 1px solid #eeeeee;
+  margin: 14px 0 20px;
 }
 
 .modal-form {
@@ -950,7 +915,7 @@ const limparFiltros = () => {
 
 .form-grid {
   display: grid;
-  grid-template-columns: 130px 1fr;
+  grid-template-columns: 150px 1fr;
   gap: 12px;
   align-items: center;
   text-align: left;
@@ -963,36 +928,44 @@ const limparFiltros = () => {
 
 .details-grid p {
   margin: 10px 0;
+  font-size: 0.92rem;
 }
 
 .modal-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
   margin-top: 20px;
-  padding-top: 15px;
-  border-top: 1px solid #eee;
+  padding-top: 16px;
+  border-top: 1px solid #eeeeee;
   justify-content: flex-end;
 }
+
+/* ---------- Mapa ---------- */
 
 .mapa-secao-isolada {
   margin-top: 20px;
   display: flex;
   flex-direction: column;
   width: 100%;
-  border-top: 1px solid #eee;
-  padding-top: 15px;
+  border-top: 1px solid #eeeeee;
+  padding-top: 16px;
 }
 
 .mapa-titulo {
-  font-weight: 600;
+  font-weight: 700;
   margin-bottom: 8px;
-  color: #333;
-  font-size: 0.9rem;
+  color: #141414;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
 }
 
 .mapa-container {
   width: 100%;
   height: 280px;
-  border-radius: 8px;
-  border: 1px solid #ccc;
+  border-radius: 10px;
+  border: 1px solid #d8d8d8;
   margin-bottom: 10px;
   z-index: 1;
 }
@@ -1000,15 +973,17 @@ const limparFiltros = () => {
 .mapa-acoes {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .mapa-ajuda {
   font-size: 0.75rem;
-  color: #666;
+  color: #6b6b6b;
   font-style: italic;
   margin: 0;
 }
+
+/* ---------- Foto da carga ---------- */
 
 .foto-produto-container {
   margin: 15px 0;
@@ -1016,15 +991,16 @@ const limparFiltros = () => {
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  background-color: #fdfdfd;
-  padding: 10px;
-  border-radius: 6px;
+  background: #fafafa;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #eeeeee;
 }
 
 .foto-label {
   align-self: flex-start;
-  color: #444;
-  font-size: 0.95rem;
+  color: #444444;
+  font-size: 0.9rem;
 }
 
 .foto-detalhe {
@@ -1034,9 +1010,8 @@ const limparFiltros = () => {
   max-height: 200px;
   object-fit: contain;
   border: 1px solid #e0e0e0;
-  border-radius: 6px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-  background: #f7f7f7;
+  border-radius: 8px;
+  background: #ffffff;
 }
 
 .sem-foto-placeholder {
@@ -1046,13 +1021,15 @@ const limparFiltros = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px dashed #ccc;
-  border-radius: 6px;
-  color: #888;
+  border: 1px dashed #d8d8d8;
+  border-radius: 8px;
+  color: #9a9a9a;
   font-style: italic;
-  font-size: 0.9rem;
-  background-color: #fafafa;
+  font-size: 0.88rem;
+  background: #fafafa;
 }
+
+/* ---------- Loader ---------- */
 
 .loader-container {
   display: flex;
@@ -1061,35 +1038,41 @@ const limparFiltros = () => {
 }
 
 .loader {
-  width: 45px;
-  height: 45px;
+  width: 42px;
+  height: 42px;
   border: 4px solid #e5e5e5;
-  border-top: 4px solid #111;
+  border-top: 4px solid #141414;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
+
+/* ---------- Responsivo ---------- */
 
 @media (max-width: 768px) {
   .admin-container {
     padding: 20px;
   }
-  
+
   .admin-header {
     flex-direction: column;
     align-items: flex-start;
   }
-  
+
   .fretes-table th,
   .fretes-table td {
-    padding: 14px;
-    font-size: 0.85rem;
+    padding: 12px;
+    font-size: 0.82rem;
   }
-  
+
   .status-badge {
     min-width: auto;
     width: 100%;
@@ -1099,13 +1082,13 @@ const limparFiltros = () => {
     grid-template-columns: 1fr;
     gap: 6px;
   }
-  
+
   .modal-actions {
     flex-direction: column;
     width: 100%;
   }
-  
-  .modal-actions button {
+
+  .modal-actions .btn {
     width: 100%;
   }
 }
