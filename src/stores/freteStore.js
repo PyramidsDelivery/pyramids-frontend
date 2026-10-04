@@ -3,9 +3,9 @@ import api from '../services/api';
 
 export const useFreteStore = defineStore('frete', {
   state: () => ({
-    fretesCliente: [],    // 📦 Guarda apenas os fretes solicitados
-    fretesMotorista: [],  // 🚚 Guarda apenas os fretes a realizar
-    listaFretes: [],     // Fallback / Visão geral
+    fretesCliente: [],
+    fretesMotorista: [],
+    listaFretes: [],
     loading: false,
     erro: null,
     detalheCarga: null,
@@ -19,7 +19,6 @@ export const useFreteStore = defineStore('frete', {
   }),
 
   actions: {
-    // 🔥 Separa os dados recebidos por papel (cliente x motorista) para não misturar no estado
     async carregarFretes(tipo = 'cliente') {
       this.loading = true;
       try {
@@ -101,6 +100,31 @@ export const useFreteStore = defineStore('frete', {
       }
     },
 
+    // 🚀 NOVA AÇÃO ADICIONADA PARA O ADMIN ATUALIZAR O FRETE COMPLETO (INCLUINDO LOCALIZAÇÃO)
+    async atualizarFreteAdmin(id, dadosFrete) {
+      try {
+        const payloadFormatado = {
+          carga: dadosFrete.carga ? parseInt(dadosFrete.carga) : null,
+          motorista: dadosFrete.motorista ? parseInt(dadosFrete.motorista) : null,
+          veiculo: dadosFrete.veiculo ? parseInt(dadosFrete.veiculo) : null,
+          rota: dadosFrete.rota ? parseInt(dadosFrete.rota) : null,
+          valor_frete: dadosFrete.valor_frete ? parseFloat(dadosFrete.valor_frete) : 0,
+          moeda: dadosFrete.moeda || 'Reais',
+          status: dadosFrete.status || 'PENDENTE',
+          ultima_localizacao: dadosFrete.ultima_localizacao || '',
+          latitude: dadosFrete.latitude ? parseFloat(dadosFrete.latitude) : null,
+          longitude: dadosFrete.longitude ? parseFloat(dadosFrete.longitude) : null
+        };
+
+        await api.put(`fretes/${id}/`, payloadFormatado);
+        await this.carregarFretes('cliente');
+        return true;
+      } catch (err) {
+        console.error("Erro ao atualizar frete (Admin):", err.response?.data || err);
+        return false;
+      }
+    },
+
     async buscarDetalheCarga(id) {
       try {
         const response = await api.get(`cargas/${id}/`);
@@ -120,19 +144,18 @@ export const useFreteStore = defineStore('frete', {
     },
 
     async atualizarFreteMotorista(id, status, ultimaLocalizacao) {
-  try {
-    const payload = {};
-    if (status) payload.status = status;
-    if (ultimaLocalizacao) payload.ultima_localizacao = ultimaLocalizacao;
+      try {
+        const payload = {};
+        if (status) payload.status = status;
+        if (ultimaLocalizacao) payload.ultima_localizacao = ultimaLocalizacao;
 
-    // Adiciona ?tipo=motorista para garantir que caia na consulta do motorista
-    await api.patch(`fretes/${id}/?tipo=motorista`, payload);
-    await this.carregarFretes('motorista');
-    return true;
-  } catch (err) {
-    console.error("Erro ao atualizar frete:", err.response?.data || err);
-    return false;
-  }
-}
+        await api.patch(`fretes/${id}/?tipo=motorista`, payload);
+        await this.carregarFretes('motorista');
+        return true;
+      } catch (err) {
+        console.error("Erro ao atualizar frete:", err.response?.data || err);
+        return false;
+      }
+    }
   }
 });

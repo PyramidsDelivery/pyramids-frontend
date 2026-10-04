@@ -1,14 +1,16 @@
 <script setup>
-import { computed, onMounted, ref, nextTick } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useFreteStore } from "../stores/freteStore";
 import api from "../services/api";
-import "leaflet/dist/leaflet.css";
-import L from "leaflet";
-import ModalNovaRota from "../components/ModalNovaRota.vue";
 
-let mapa = null;
-let marcadorMotorista = null;
+import DarkButton from "../components/DarkButton.vue";
+import LightButton from "../components/LightButton.vue";
+import ModalNovaRota from "../components/ModalNovaRota.vue";
+import ModalDetalhesCarga from "../components/ModalDetalhesCarga.vue";
+import ModalDetalhesMotorista from "../components/ModalDetalhesMotorista.vue";
+import ModalEditarCarga from "../components/ModalEditarCarga.vue";
+import ModalEditarFrete from "../components/ModalEditarFrete.vue";
 
 const router = useRouter();
 const freteStore = useFreteStore();
@@ -23,137 +25,8 @@ const filtroPrecoMax = ref("");
 const filtroUsuario = ref("");
 const buscaCarga = ref("");
 
-const freteSelecionado = ref({
-  id: null,
-  carga: "",
-  motorista: "",
-  veiculo: "",
-  rota: "",
-  valor_frete: "",
-  moeda: "",
-  status: "",
-  ultima_localizacao: "",
-});
-
-const cargaSelecionada = ref({
-  id: null,
-  descricao: "",
-  peso: "",
-  unidade: "kg",
-  valor: "",
-  movera: "Reais",
-});
-
-const inicializarMapa = () => {
-  if (mapa) {
-    mapa.remove();
-    mapa = null;
-    marcadorMotorista = null;
-  }
-
-  const temCoordenadas =
-    freteSelecionado.value.latitude && freteSelecionado.value.longitude;
-
-  const latInicial = temCoordenadas ? freteSelecionado.value.latitude : -15.7801;
-  const lngInicial = temCoordenadas ? freteSelecionado.value.longitude : -47.9292;
-  const zoomInicial = temCoordenadas ? 13 : 4;
-
-  mapa = L.map("mapa-rastreio").setView([latInicial, lngInicial], zoomInicial);
-
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: "© OpenStreetMap contributors",
-  }).addTo(mapa);
-
-  if (temCoordenadas) {
-    marcadorMotorista = L.marker([latInicial, lngInicial]).addTo(mapa);
-    if (freteSelecionado.value.ultima_localizacao) {
-      marcadorMotorista
-        .bindPopup(`<b>Local Salvo:</b><br>${freteSelecionado.value.ultima_localizacao}`)
-        .openPopup();
-    }
-  }
-
-  mapa.on("click", (e) => {
-    const { lat, lng } = e.latlng;
-    atualizarMarcadorNoMapa(lat, lng, "Nova posição selecionada");
-  });
-};
-
-const atualizarMarcadorNoMapa = async (lat, lng, mensagem) => {
-  freteSelecionado.value.ultima_localizacao = "Buscando endereço...";
-
-  if (marcadorMotorista) {
-    marcadorMotorista.setLatLng([lat, lng]);
-  } else {
-    marcadorMotorista = L.marker([lat, lng]).addTo(mapa);
-  }
-  mapa.setView([lat, lng], 14);
-
-  try {
-    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
-    const resposta = await fetch(url, {
-      headers: { "Accept-Language": "pt-BR" },
-    });
-    const dados = await resposta.json();
-
-    if (dados && dados.address) {
-      const adr = dados.address;
-      const rua = adr.road || adr.suburb || "Rua não identificada";
-      const numero = adr.house_number ? `, Nº ${adr.house_number}` : "";
-      const cidade = adr.city || adr.town || adr.village || "";
-      const estado = adr.state ? ` - ${adr.state}` : "";
-
-      const enderecoCompleto = `${rua}${numero}, ${cidade}${estado}`;
-
-      freteSelecionado.value.ultima_localizacao = enderecoCompleto;
-      marcadorMotorista.bindPopup(`<b>${mensagem}</b><br>${enderecoCompleto}`).openPopup();
-    } else {
-      freteSelecionado.value.ultima_localizacao = `Lat: ${lat.toFixed(5)}, Lon: ${lng.toFixed(5)}`;
-      marcadorMotorista
-        .bindPopup(`<b>${mensagem}</b><br>Lat: ${lat.toFixed(5)}, Lon: ${lng.toFixed(5)}`)
-        .openPopup();
-    }
-  } catch (error) {
-    console.error("Erro ao buscar o endereço:", error);
-    freteSelecionado.value.ultima_localizacao = `Lat: ${lat.toFixed(5)}, Lon: ${lng.toFixed(5)}`;
-    marcadorMotorista
-      .bindPopup(`<b>${mensagem}</b><br>Lat: ${lat.toFixed(5)}, Lon: ${lng.toFixed(5)}`)
-      .openPopup();
-  }
-};
-
-const compartilharLocalizacaoReal = () => {
-  if (!navigator.geolocation) {
-    alert("Seu aparelho ou navegador não suporta geolocalização.");
-    return;
-  }
-
-  const opcoesGps = { enableHighAccuracy: false, timeout: 5000, maximumAge: 0 };
-
-  navigator.geolocation.getCurrentPosition(
-    (position) => {
-      const { latitude, longitude } = position.coords;
-      atualizarMarcadorNoMapa(latitude, longitude, "Minha localização atual");
-    },
-    (error) => {
-      console.error("Erro do GPS:", error);
-      alert("Não foi possível obter sua localização. Verifique as permissões de privacidade do seu navegador.");
-    },
-    opcoesGps
-  );
-};
-
-const prepararEdicao = (frete) => {
-  freteSelecionado.value = { ...frete };
-  mostrarModalEditar.value = true;
-
-  nextTick(() => {
-    inicializarMapa();
-    setTimeout(() => {
-      if (mapa) mapa.invalidateSize();
-    }, 250);
-  });
-};
+const freteSelecionado = ref({});
+const cargaSelecionada = ref({});
 
 const carregarDadosDoPainel = async () => {
   await Promise.all([
@@ -164,152 +37,73 @@ const carregarDadosDoPainel = async () => {
 
 onMounted(carregarDadosDoPainel);
 
-router.afterEach((to) => {
-  if (to.path.includes("admin") || to.name?.includes("admin")) {
-    carregarDadosDoPainel();
-  }
-});
+const listaFretes = computed(() =>
+  Array.isArray(freteStore.listaFretes)
+    ? freteStore.listaFretes
+    : freteStore.listaFretes?.results || [],
+);
+const listaUsuariosUnicos = computed(() =>
+  [
+    ...new Set(listaFretes.value.map((f) => f.usuario_email).filter(Boolean)),
+  ].sort(),
+);
 
-const listaFretes = computed(() => {
-  const fretes = freteStore.listaFretes;
-  return Array.isArray(fretes) ? fretes : fretes?.results || [];
-});
+const obterDescricaoCarga = (id) =>
+  freteStore.opcoes?.cargas?.find((c) => c.id === id)?.descricao ||
+  `Carga #${id}`;
+const obterNomeMotorista = (id) =>
+  freteStore.opcoes?.motoristas?.find((m) => m.id === id)?.nome ||
+  `Motorista #${id}`;
 
-const listaUsuariosUnicos = computed(() => {
-  return [
-    ...new Set(
-      listaFretes.value.map((f) => f.usuario_email).filter((e) => e?.trim())
-    ),
-  ].sort();
-});
-
-const obterDescricaoCarga = (id) => {
-  const lista = freteStore.opcoes?.cargas;
-  const listaLimpa = Array.isArray(lista) ? lista : lista?.results || [];
-  return (
-    listaLimpa.find((c) => parseInt(c.id, 10) === parseInt(id, 10))?.descricao ||
-    `Carga #${id}`
-  );
-};
-
-const obterNomeMotorista = (id) => {
-  const lista = freteStore.opcoes?.motoristas;
-  const listaLimpa = Array.isArray(lista) ? lista : lista?.results || [];
-  return (
-    listaLimpa.find((m) => parseInt(m.id, 10) === parseInt(id, 10))?.nome ||
-    `Motorista #${id}`
-  );
-};
-
-const fretesFiltrados = computed(() => {
-  return listaFretes.value.filter((frete) => {
+const fretesFiltrados = computed(() =>
+  listaFretes.value.filter((f) => {
     if (
       filtroPrecoMax.value &&
-      parseFloat(frete.valor_frete) > parseFloat(filtroPrecoMax.value)
+      parseFloat(f.valor_frete) > parseFloat(filtroPrecoMax.value)
     )
       return false;
-    if (filtroUsuario.value && frete.usuario_email !== filtroUsuario.value)
+    if (filtroUsuario.value && f.usuario_email !== filtroUsuario.value)
       return false;
     if (
       buscaCarga.value &&
-      !obterDescricaoCarga(frete.carga)
+      !obterDescricaoCarga(f.carga)
         .toLowerCase()
         .includes(buscaCarga.value.toLowerCase())
     )
       return false;
     return true;
-  });
-});
+  }),
+);
 
 const getStatusClass = (s) =>
-  `status-${
-    s
-      ?.toLowerCase()
-      .replace(/\s+/g, "-")
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "") || "default"
-  }`;
+  `status-${s?.toLowerCase().replace(/\s+/g, "-") || "default"}`;
 
 const abrirCarga = async (id) => {
   await freteStore.buscarDetalheCarga(id);
   mostrarModalCarga.value = true;
 };
-
 const abrirMotorista = async (id) => {
   await freteStore.buscarDetalheMotorista(id);
   mostrarModalMotorista.value = true;
 };
 
-const salvarEdicao = async () => {
-  try {
-    const { id, carga, motorista, veiculo, rota, ultima_localizacao } = freteSelecionado.value;
-    const dadosFormatados = {
-      ...freteSelecionado.value,
-      carga: carga ? parseInt(carga, 10) : null,
-      motorista: motorista ? parseInt(motorista, 10) : null,
-      veiculo: veiculo ? parseInt(veiculo, 10) : null,
-      rota: rota ? parseInt(rota, 10) : null,
-      ultima_localizacao: ultima_localizacao || "",
-    };
-    await api.put(`fretes/${id}/`, dadosFormatados);
-    mostrarModalEditar.value = false;
-    await carregarDadosDoPainel();
-  } catch (error) {
-    console.error("Erro ao salvar frete:", error.response?.data);
-    alert("Não foi possível salvar as alterações do frete.");
-  }
+const prepararEdicao = (frete) => {
+  freteSelecionado.value = { ...frete };
+  mostrarModalEditar.value = true;
 };
-
-const prepararEdicaoCarga = (idCarga) => {
-  const listaOrigem = freteStore.opcoes?.cargas;
-  const listaLimpa = Array.isArray(listaOrigem) ? listaOrigem : listaOrigem?.results || [];
-  const cargaOrigem = listaLimpa.find(
-    (c) => parseInt(c.id, 10) === parseInt(idCarga, 10)
-  );
-  if (cargaOrigem) {
-    cargaSelecionada.value = { ...cargaOrigem };
+const prepararEdicaoCarga = (id) => {
+  const c = freteStore.opcoes?.cargas?.find((item) => item.id === id);
+  if (c) {
+    cargaSelecionada.value = { ...c };
     mostrarModalEditarCarga.value = true;
   }
 };
 
-const salvarEdicaoCarga = async () => {
-  try {
-    const dadosParaEnviar = { ...cargaSelecionada.value };
-
-    if (typeof dadosParaEnviar.foto === "string") {
-      delete dadosParaEnviar.foto;
-    }
-
-    if (!dadosParaEnviar.unidade) dadosParaEnviar.unidade = "kg";
-    if (!dadosParaEnviar.movera) dadosParaEnviar.movera = "Reais";
-
-    await api.put(`cargas/${dadosParaEnviar.id}/`, dadosParaEnviar);
-
-    mostrarModalEditarCarga.value = false;
-    await carregarDadosDoPainel();
-  } catch (error) {
-    console.error("Erro detalhado do Django:", error.response?.data);
-    alert("Não foi possível salvar as alterações da carga. Verifique os campos.");
-  }
-};
-
 const excluirFrete = async (id) => {
-  if (confirm(`Tem certeza que deseja excluir permanentemente o Frete #${id}?`)) {
-    try {
-      await api.delete(`fretes/${id}/`);
-      alert(`Frete #${id} excluído com sucesso!`);
-      await carregarDadosDoPainel();
-    } catch (error) {
-      console.error("Erro ao excluir frete:", error);
-      alert("Não foi possível excluir o frete. Verifique se existem dependências.");
-    }
+  if (confirm(`Excluir Frete #${id}?`)) {
+    await api.delete(`fretes/${id}/`);
+    await carregarDadosDoPainel();
   }
-};
-
-const limparFiltros = () => {
-  buscaCarga.value = "";
-  filtroUsuario.value = "";
-  filtroPrecoMax.value = "";
 };
 </script>
 
@@ -321,56 +115,41 @@ const limparFiltros = () => {
         <p>Gerencie cargas e acompanhe os status em tempo real.</p>
       </div>
       <div class="header-btns">
-        <button class="btn btn-outline" @click="router.push('/fretes/novo')">
-          Novo Frete
-        </button>
-        <button class="btn btn-outline" @click="router.push('/cargas/novo')">
-          Nova Carga
-        </button>
-        <button class="btn btn-primary" @click="mostrarModalRota = true">
-          Cadastrar Rota
-        </button>
-        <button class="btn btn-ghost" @click="router.back()">Voltar</button>
+        <LightButton label="Novo Frete" @click="router.push('/fretes/novo')" />
+        <LightButton label="Nova Carga" @click="router.push('/cargas/novo')" />
+        <DarkButton label="Cadastrar Rota" @click="mostrarModalRota = true" />
+        <LightButton label="Voltar" @click="router.back()" />
       </div>
     </header>
 
     <div class="filter-bar">
-      <div class="filter-group">
-        <label for="busca-carga">Pesquisar Carga</label>
-        <input
-          id="busca-carga"
-          type="text"
-          v-model="buscaCarga"
-          placeholder="Ex: Alimentos, ferro, grãos..."
-          class="filter-input"
-        />
-      </div>
-      <div class="filter-group">
-        <label for="filtro-user">Solicitante</label>
-        <select id="filtro-user" v-model="filtroUsuario" class="filter-select">
-          <option value="">Todos os usuários</option>
-          <option v-for="email in listaUsuariosUnicos" :key="email" :value="email">
-            {{ email }}
-          </option>
-        </select>
-      </div>
-      <div class="filter-group">
-        <label for="preco-max">Preço Máximo (R$)</label>
-        <input
-          id="preco-max"
-          type="number"
-          v-model="filtroPrecoMax"
-          placeholder="0.00"
-          class="filter-input"
-        />
-      </div>
-      <button
-        class="btn btn-ghost"
-        @click="limparFiltros"
+      <input
+        type="text"
+        v-model="buscaCarga"
+        placeholder="Pesquisar Carga..."
+        class="filter-input"
+      />
+      <select v-model="filtroUsuario" class="filter-select">
+        <option value="">Todos os usuários</option>
+        <option v-for="e in listaUsuariosUnicos" :key="e" :value="e">
+          {{ e }}
+        </option>
+      </select>
+      <input
+        type="number"
+        v-model="filtroPrecoMax"
+        placeholder="Preço Máx (R$)"
+        class="filter-input"
+      />
+      <LightButton
+        label="Limpar"
+        @click="
+          buscaCarga = '';
+          filtroUsuario = '';
+          filtroPrecoMax = '';
+        "
         v-if="buscaCarga || filtroUsuario || filtroPrecoMax"
-      >
-        Limpar Filtros
-      </button>
+      />
     </div>
 
     <div v-if="freteStore.loading" class="loader-container">
@@ -391,652 +170,169 @@ const limparFiltros = () => {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="frete in fretesFiltrados" :key="frete.id">
-            <td class="id-cell">#{{ frete.id }}</td>
-            <td class="user-cell">{{ frete.usuario_email || "Não informado" }}</td>
-            <td class="clickable-cell" @click="abrirCarga(frete.carga)">
-              {{ obterDescricaoCarga(frete.carga) }}
+          <tr v-for="f in fretesFiltrados" :key="f.id">
+            <td>#{{ f.id }}</td>
+            <td>{{ f.usuario_email }}</td>
+            <td class="clickable" @click="abrirCarga(f.carga)">
+              {{ obterDescricaoCarga(f.carga) }}
             </td>
-            <td class="clickable-cell" @click="abrirMotorista(frete.motorista)">
-              {{ obterNomeMotorista(frete.motorista) }}
+            <td class="clickable" @click="abrirMotorista(f.motorista)">
+              {{ obterNomeMotorista(f.motorista) }}
             </td>
-            <td class="price-cell">{{ frete.valor_frete }} {{ frete.moeda }}</td>
+            <td>{{ f.valor_frete }} {{ f.moeda }}</td>
             <td>
-              <span :class="['status-badge', getStatusClass(frete.status)]">
-                {{ frete.status }}
-              </span>
+              <span :class="['status-badge', getStatusClass(f.status)]">{{
+                f.status
+              }}</span>
             </td>
             <td class="actions-cell">
-              <button class="row-btn" @click="prepararEdicao(frete)">Editar</button>
-              <button class="row-btn" @click="prepararEdicaoCarga(frete.carga)">Carga</button>
-              <button class="row-btn row-btn-danger" @click="excluirFrete(frete.id)">
-                Excluir
-              </button>
+              <LightButton label="Editar" @click="prepararEdicao(f)" />
+              <LightButton
+                label="Carga"
+                @click="prepararEdicaoCarga(f.carga)"
+              />
+              <LightButton
+                label="Excluir"
+                class="btn-danger"
+                @click="excluirFrete(f.id)"
+              />
             </td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <div v-else class="empty-results-container">
-      Nenhum frete corresponde aos filtros aplicados ou banco vazio.
-    </div>
-
-    <div v-if="mostrarModalEditar" class="modal-overlay" @click.self="mostrarModalEditar = false">
-      <div class="modal-content modal-form">
-        <h3>Editar Frete #{{ freteSelecionado.id }}</h3>
-        <hr />
-
-        <div class="form-grid">
-          <label>Carga</label>
-          <select v-model="freteSelecionado.carga">
-            <option v-for="c in freteStore.opcoes.cargas" :key="c.id" :value="c.id">
-              {{ c.descricao }}
-            </option>
-          </select>
-
-          <label>Motorista</label>
-          <select v-model="freteSelecionado.motorista">
-            <option v-for="m in freteStore.opcoes.motoristas" :key="m.id" :value="m.id">
-              {{ m.nome }}
-            </option>
-          </select>
-
-          <label>Veículo</label>
-          <select v-model="freteSelecionado.veiculo">
-            <option v-for="v in freteStore.opcoes.veiculos" :key="v.id" :value="v.id">
-              {{ v.modelo }} ({{ v.placa }})
-            </option>
-          </select>
-
-          <label>Rota</label>
-          <select v-model="freteSelecionado.rota">
-            <option v-for="r in freteStore.opcoes.rotas" :key="r.id" :value="r.id">
-              {{ r.nome || `${r.ponto_inicial} → ${r.ponto_final}` }}
-            </option>
-          </select>
-
-          <label>Moeda</label>
-          <select v-model="freteSelecionado.moeda">
-            <option value="Reais">Reais (R$)</option>
-            <option value="Euro">Euro (€)</option>
-            <option value="Dolar">Dólar ($)</option>
-          </select>
-
-          <label>Valor do Frete</label>
-          <input type="number" v-model="freteSelecionado.valor_frete" step="0.01" />
-
-          <label>Status</label>
-          <select v-model="freteSelecionado.status">
-            <option value="Pendente">Pendente</option>
-            <option value="Em andamento">Em andamento</option>
-            <option value="Entregue">Entregue</option>
-          </select>
-
-          <label>Última Localização</label>
-          <input
-            type="text"
-            v-model="freteSelecionado.ultima_localizacao"
-            placeholder="Coordenadas ou ponto de referência"
-          />
-        </div>
-
-        <div class="mapa-secao-isolada">
-          <label class="mapa-titulo">Rastreamento por Mapa Interativo</label>
-          <div id="mapa-rastreio" class="mapa-container"></div>
-          <div class="mapa-acoes">
-            <button type="button" class="btn btn-outline btn-small" @click="compartilharLocalizacaoReal">
-              Compartilhar Minha Localização Atual
-            </button>
-            <p class="mapa-ajuda">
-              * Clique em qualquer lugar do mapa para fixar uma localização manualmente, ou ative o GPS para atualizar em tempo real.
-            </p>
-          </div>
-        </div>
-
-        <div class="modal-actions">
-          <button class="btn btn-primary" @click="salvarEdicao">Salvar Alterações</button>
-          <button class="btn btn-ghost" @click="mostrarModalEditar = false">Cancelar</button>
-        </div>
-      </div>
-    </div>
-
-    <div v-if="mostrarModalEditarCarga" class="modal-overlay" @click.self="mostrarModalEditarCarga = false">
-      <div class="modal-content modal-form">
-        <h3>Editar Carga #{{ cargaSelecionada.id }}</h3>
-        <hr />
-        <div class="form-grid">
-          <label>Descrição da Carga</label>
-          <input type="text" v-model="cargaSelecionada.descricao" />
-          <label>Peso</label>
-          <input type="number" v-model="cargaSelecionada.peso" step="0.1" />
-          <label>Unidade de Medida</label>
-          <select v-model="cargaSelecionada.unidade">
-            <option value="kg">Quilos (kg)</option>
-            <option value="t">Toneladas (t)</option>
-          </select>
-          <label>Valor Declarado</label>
-          <input type="number" v-model="cargaSelecionada.valor" step="0.01" />
-          <label>Moeda do Valor</label>
-          <select v-model="cargaSelecionada.movera">
-            <option value="Reais">Reais (R$)</option>
-            <option value="Euro">Euro (€)</option>
-            <option value="Dolar">Dólar ($)</option>
-          </select>
-        </div>
-        <div class="modal-actions">
-          <button class="btn btn-primary" @click="salvarEdicaoCarga">Atualizar Carga</button>
-          <button class="btn btn-ghost" @click="mostrarModalEditarCarga = false">Cancelar</button>
-        </div>
-      </div>
-    </div>
-
-    <div v-if="mostrarModalCarga" class="modal-overlay" @click.self="mostrarModalCarga = false">
-      <div class="modal-content">
-        <h3>Detalhes da Carga #{{ freteStore.detalheCarga?.id }}</h3>
-        <hr />
-        <div v-if="freteStore.detalheCarga" class="details-grid">
-          <p><strong>Descrição:</strong> {{ freteStore.detalheCarga.descricao }}</p>
-          <p><strong>Peso:</strong> {{ freteStore.detalheCarga.peso }} {{ freteStore.detalheCarga.unidade || "kg" }}</p>
-          <div class="foto-produto-container">
-            <span class="foto-label"><strong>Foto da Carga:</strong></span>
-            <img
-              v-if="freteStore.detalheCarga.foto"
-              :src="freteStore.detalheCarga.foto"
-              alt="Foto da carga"
-              class="foto-detalhe"
-            />
-            <div v-else class="sem-foto-placeholder">Sem foto cadastrada</div>
-          </div>
-        </div>
-        <button class="btn btn-ghost" @click="mostrarModalCarga = false">Fechar</button>
-      </div>
-    </div>
-
-    <div v-if="mostrarModalMotorista" class="modal-overlay" @click.self="mostrarModalMotorista = false">
-      <div class="modal-content">
-        <h3>Informações do Motorista</h3>
-        <hr />
-        <div v-if="freteStore.detalheMotorista" class="details-grid">
-          <p><strong>Nome:</strong> {{ freteStore.detalheMotorista.nome }}</p>
-          <p><strong>CNH:</strong> {{ freteStore.detalheMotorista.cnh }}</p>
-          <p><strong>Telefone:</strong> {{ freteStore.detalheMotorista.telefone }}</p>
-        </div>
-        <button class="btn btn-ghost" @click="mostrarModalMotorista = false">Fechar</button>
-      </div>
-    </div>
-
-    <ModalNovaRota :isOpen="mostrarModalRota" @close="mostrarModalRota = false" />
+    <div v-else class="empty-results">Nenhum frete encontrado.</div>
+    <ModalDetalhesCarga
+      :isOpen="mostrarModalCarga"
+      :carga="freteStore.detalheCarga"
+      @close="mostrarModalCarga = false"
+    />
+    <ModalDetalhesMotorista
+      :isOpen="mostrarModalMotorista"
+      :motorista="freteStore.detalheMotorista"
+      @close="mostrarModalMotorista = false"
+    />
+    <ModalEditarCarga
+      :isOpen="mostrarModalEditarCarga"
+      :carga="cargaSelecionada"
+      @close="mostrarModalEditarCarga = false"
+      @salvo="carregarDadosDoPainel"
+    />
+    <ModalEditarFrete
+      :isOpen="mostrarModalEditar"
+      :frete="freteSelecionado"
+      :opcoes="freteStore.opcoes"
+      @close="mostrarModalEditar = false"
+      @salvo="carregarDadosDoPainel"
+    />
+    <ModalNovaRota
+      :isOpen="mostrarModalRota"
+      @close="mostrarModalRota = false"
+    />
   </div>
 </template>
 
 <style scoped>
-* {
-  box-sizing: border-box;
-}
-
 .admin-container {
-  min-height: 100vh;
   padding: 40px;
   background: #f2f2f2;
-  font-family: "Segoe UI", system-ui, sans-serif;
-  color: #141414;
+  min-height: 100vh;
+  font-family: sans-serif;
 }
-
-/* ---------- Header ---------- */
-
 .admin-header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  gap: 20px;
-  flex-wrap: wrap;
+  align-items: center;
   margin-bottom: 28px;
+  flex-wrap: wrap;
+  gap: 20px;
 }
-
-.admin-header h1 {
-  margin: 0;
-  font-size: 2rem;
-  font-weight: 800;
-  letter-spacing: -0.5px;
-}
-
-.admin-header p {
-  margin-top: 6px;
-  color: #6b6b6b;
-  font-size: 0.95rem;
-}
-
 .header-btns {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+  align-items: center;
 }
 
-/* ---------- Buttons ---------- */
-
-.btn {
-  border: none;
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 0.9rem;
-  padding: 11px 18px;
-  border-radius: 10px;
-  transition: transform 0.2s ease, opacity 0.2s ease, background 0.2s ease, border-color 0.2s ease;
-}
-
-.btn:hover {
-  transform: translateY(-1px);
-}
-
-.btn-primary {
-  background: #141414;
-  color: #ffffff;
-}
-
-.btn-primary:hover {
-  opacity: 0.88;
-}
-
-.btn-outline {
-  background: #ffffff;
-  color: #141414;
-  border: 1px solid #d8d8d8;
-}
-
-.btn-outline:hover {
-  border-color: #141414;
-}
-
-.btn-ghost {
-  background: transparent;
-  color: #6b6b6b;
-  border: 1px solid transparent;
-}
-
-.btn-ghost:hover {
-  color: #141414;
-  background: #eaeaea;
-}
-
-.btn-small {
+.header-btns :deep(button) {
+  width: auto;
   padding: 8px 14px;
-  font-size: 0.82rem;
-}
-
-.row-btn {
-  border: 1px solid #d8d8d8;
-  background: #ffffff;
-  color: #141414;
-  padding: 6px 12px;
+  font-size: 0.85rem;
   border-radius: 8px;
+}
+
+.actions-cell :deep(button) {
+  width: auto;
+  padding: 6px 10px;
   font-size: 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: border-color 0.2s ease, color 0.2s ease;
+  border-radius: 6px;
 }
-
-.row-btn:hover {
-  border-color: #141414;
-}
-
-.row-btn-danger {
-  color: #b3261e;
-  border-color: #f0d3d1;
-}
-
-.row-btn-danger:hover {
-  border-color: #b3261e;
-  background: #fdf3f2;
-}
-
-/* ---------- Filter bar ---------- */
 
 .filter-bar {
   display: flex;
-  flex-wrap: wrap;
   gap: 20px;
-  background: #ffffff;
-  padding: 18px 20px;
+  background: #fff;
+  padding: 18px;
   border-radius: 14px;
   margin-bottom: 24px;
-  align-items: flex-end;
+  align-items: center;
   border: 1px solid #e0e0e0;
 }
-
-.filter-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  flex: 1;
-  min-width: 180px;
-}
-
-.filter-group label,
-.form-grid label {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: #6b6b6b;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-}
-
 .filter-input,
-.filter-select,
-.form-grid select,
-.form-grid input {
-  padding: 10px 12px;
-  border: 1px solid #d8d8d8;
+.filter-select {
+  padding: 10px;
+  border: 1px solid #ccc;
   border-radius: 8px;
-  font-size: 0.9rem;
-  background: #ffffff;
-  color: #141414;
-  width: 100%;
+  flex: 1;
 }
-
-.filter-input:focus,
-.filter-select:focus,
-.form-grid select:focus,
-.form-grid input:focus {
-  outline: none;
-  border-color: #141414;
-}
-
-/* ---------- Table ---------- */
-
 .table-wrapper {
-  overflow-x: auto;
-  background: #ffffff;
+  background: #fff;
   border-radius: 16px;
+  overflow-x: auto;
   border: 1px solid #e0e0e0;
 }
-
 .fretes-table {
   width: 100%;
   border-collapse: collapse;
 }
-
-.fretes-table thead {
-  background: #141414;
-}
-
 .fretes-table th {
-  padding: 16px 20px;
-  color: #ffffff;
+  padding: 16px;
+  background: #141414;
+  color: #fff;
   text-align: left;
   font-size: 0.78rem;
-  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.8px;
 }
-
 .fretes-table td {
-  padding: 16px 20px;
-  border-bottom: 1px solid #eeeeee;
+  padding: 16px;
+  border-bottom: 1px solid #eee;
   font-size: 0.9rem;
-  color: #333333;
 }
-
-.fretes-table tbody tr:last-child td {
-  border-bottom: none;
-}
-
-.fretes-table tbody tr:hover {
-  background: #fafafa;
-}
-
-.id-cell {
-  color: #9a9a9a;
-  font-family: monospace;
-}
-
-.price-cell {
-  font-weight: 700;
-  color: #141414;
-}
-
-.user-cell {
-  color: #555555;
-  font-size: 0.88rem;
-  font-weight: 500;
-}
-
-.clickable-cell {
-  color: #141414;
+.clickable {
   text-decoration: underline;
-  text-underline-offset: 2px;
   cursor: pointer;
   font-weight: 600;
 }
-
-.clickable-cell:hover {
-  color: #555555;
-}
-
 .actions-cell {
   display: flex;
   gap: 8px;
-  flex-wrap: wrap;
 }
-
-.empty-results-container {
+.btn-danger {
+  color: #b3261e !important;
+}
+.empty-results {
   text-align: center;
   padding: 48px;
-  color: #6b6b6b;
-  background: #ffffff;
+  background: #fff;
   border-radius: 14px;
-  border: 1px dashed #d8d8d8;
-}
-
-/* ---------- Status badges ---------- */
-
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 120px;
-  padding: 7px 14px;
-  border-radius: 999px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  border: 1px solid transparent;
-}
-
-.status-pendente {
-  background: #f2f2f2;
-  color: #6b6b6b;
-  border-color: #d8d8d8;
-}
-
-.status-concluido,
-.status-entregue {
-  background: #141414;
-  color: #ffffff;
-}
-
-.status-em-transito,
-.status-em-andamento {
-  background: #ffffff;
-  color: #141414;
-  border-color: #141414;
-}
-
-.status-default {
-  background: #eeeeee;
   color: #6b6b6b;
 }
-
-/* ---------- Modals ---------- */
-
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(20, 20, 20, 0.6);
-  backdrop-filter: blur(2px);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background: #ffffff;
-  padding: 2rem;
-  border-radius: 16px;
-  min-width: 320px;
-  max-width: 500px;
-  width: 100%;
-  color: #141414;
-  max-height: 90vh;
-  overflow-y: auto;
-  border: 1px solid #e0e0e0;
-}
-
-.modal-content h3 {
-  margin: 0;
-  font-size: 1.3rem;
-  font-weight: 800;
-}
-
-.modal-content hr {
-  border: none;
-  border-top: 1px solid #eeeeee;
-  margin: 14px 0 20px;
-}
-
-.modal-form {
-  max-width: 600px;
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: 150px 1fr;
-  gap: 12px;
-  align-items: center;
-  text-align: left;
-  margin-bottom: 20px;
-}
-
-.form-grid label {
-  margin: 0;
-}
-
-.details-grid p {
-  margin: 10px 0;
-  font-size: 0.92rem;
-}
-
-.modal-actions {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid #eeeeee;
-  justify-content: flex-end;
-}
-
-/* ---------- Mapa ---------- */
-
-.mapa-secao-isolada {
-  margin-top: 20px;
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  border-top: 1px solid #eeeeee;
-  padding-top: 16px;
-}
-
-.mapa-titulo {
-  font-weight: 700;
-  margin-bottom: 8px;
-  color: #141414;
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-}
-
-.mapa-container {
-  width: 100%;
-  height: 280px;
-  border-radius: 10px;
-  border: 1px solid #d8d8d8;
-  margin-bottom: 10px;
-  z-index: 1;
-}
-
-.mapa-acoes {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.mapa-ajuda {
-  font-size: 0.75rem;
-  color: #6b6b6b;
-  font-style: italic;
-  margin: 0;
-}
-
-/* ---------- Foto da carga ---------- */
-
-.foto-produto-container {
-  margin: 15px 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  background: #fafafa;
-  padding: 12px;
-  border-radius: 10px;
-  border: 1px solid #eeeeee;
-}
-
-.foto-label {
-  align-self: flex-start;
-  color: #444444;
-  font-size: 0.9rem;
-}
-
-.foto-detalhe {
-  width: 100%;
-  max-width: 280px;
-  height: auto;
-  max-height: 200px;
-  object-fit: contain;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  background: #ffffff;
-}
-
-.sem-foto-placeholder {
-  width: 100%;
-  max-width: 280px;
-  height: 120px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px dashed #d8d8d8;
-  border-radius: 8px;
-  color: #9a9a9a;
-  font-style: italic;
-  font-size: 0.88rem;
-  background: #fafafa;
-}
-
-/* ---------- Loader ---------- */
-
 .loader-container {
   display: flex;
   justify-content: center;
   margin-top: 80px;
 }
-
 .loader {
   width: 42px;
   height: 42px;
@@ -1045,51 +341,12 @@ const limparFiltros = () => {
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
-
 @keyframes spin {
   0% {
     transform: rotate(0deg);
   }
   100% {
     transform: rotate(360deg);
-  }
-}
-
-/* ---------- Responsivo ---------- */
-
-@media (max-width: 768px) {
-  .admin-container {
-    padding: 20px;
-  }
-
-  .admin-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .fretes-table th,
-  .fretes-table td {
-    padding: 12px;
-    font-size: 0.82rem;
-  }
-
-  .status-badge {
-    min-width: auto;
-    width: 100%;
-  }
-
-  .form-grid {
-    grid-template-columns: 1fr;
-    gap: 6px;
-  }
-
-  .modal-actions {
-    flex-direction: column;
-    width: 100%;
-  }
-
-  .modal-actions .btn {
-    width: 100%;
   }
 }
 </style>
