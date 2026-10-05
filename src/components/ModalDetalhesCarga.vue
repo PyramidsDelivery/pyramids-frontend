@@ -1,7 +1,26 @@
 <script setup>
 import LightButton from "./LightButton.vue";
-defineProps({ isOpen: Boolean, carga: Object });
+const props = defineProps({ isOpen: Boolean, carga: Object });
 defineEmits(["close"]);
+
+const obterUrlImagem = () => {
+  // Pega o campo foto ou foto_url que vier do objeto carga
+  const caminho = props.carga?.foto || props.carga?.foto_url;
+  if (!caminho) return '';
+
+  // Se na string tiver '/media/', corta tudo antes e usa o localhost do backend correto
+  const indexMedia = caminho.indexOf('/media/');
+  if (indexMedia !== -1) {
+    const caminhoRelativo = caminho.substring(indexMedia);
+    return `http://localhost:8000${caminhoRelativo}`;
+  }
+
+  if (caminho.startsWith('http')) {
+    return caminho;
+  }
+  
+  return `http://localhost:8000${caminho}`;
+};
 </script>
 
 <template>
@@ -14,11 +33,15 @@ defineEmits(["close"]);
         <p>
           <strong>Peso:</strong> {{ carga.peso }} {{ carga.unidade || "kg" }}
         </p>
+        <p v-if="carga.valor">
+          <strong>Valor:</strong> R$ {{ carga.valor }}
+        </p>
         <div class="foto-produto-container">
           <span class="foto-label"><strong>Foto da Carga:</strong></span>
+          <!-- AQUI MUDOU: Chamamos a função sem parâmetros -->
           <img
-            v-if="carga.foto"
-            :src="carga.foto"
+            v-if="carga.foto || carga.foto_url"
+            :src="obterUrlImagem()"
             alt="Foto da carga"
             class="foto-detalhe"
           />
