@@ -1,11 +1,17 @@
 <script setup>
 import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router'; // Importado para navegação
+import { useRouter } from 'vue-router';
 import { useFreteStore } from '../stores/freteStore';
 import DarkButton from '../components/DarkButton.vue';
 
+// ➔ Props para receber a rota e carga vindas do fluxo passo a passo
+const props = defineProps({
+  rotaIdPreDefinido: { type: [Number, String], default: null },
+  cargaIdPreDefinido: { type: [Number, String], default: null }
+});
+
 const freteStore = useFreteStore();
-const router = useRouter(); // Instância do router
+const router = useRouter();
 
 const form = ref({
   carga: '',
@@ -17,8 +23,16 @@ const form = ref({
   status: 'PENDENTE'
 });
 
-onMounted(() => {
-  freteStore.buscarOpcoesCadastro();
+onMounted(async () => {
+  await freteStore.buscarOpcoesCadastro();
+  
+  // ➔ Atribui automaticamente se existirem IDs passados por parâmetro/props
+  if (props.cargaIdPreDefinido) {
+    form.value.carga = props.cargaIdPreDefinido;
+  }
+  if (props.rotaIdPreDefinido) {
+    form.value.rota = props.rotaIdPreDefinido;
+  }
 });
 
 const finalizarCadastro = async () => {
@@ -30,13 +44,12 @@ const finalizarCadastro = async () => {
   const sucesso = await freteStore.criarFrete(form.value);
   if (sucesso) {
     alert("Frete cadastrado com sucesso!");
-    router.back(); // Volta automaticamente após cadastrar
+    router.back();
   } else {
     alert("Erro ao cadastrar frete. Verifique o console.");
   }
 };
 
-// Função para o botão voltar
 const voltar = () => {
   router.back();
 };
@@ -110,14 +123,12 @@ const voltar = () => {
   max-width: 600px;
   margin: 0 auto;
 }
-
 .header-actions {
   display: flex;
   align-items: center;
   gap: 20px;
   margin-bottom: 20px;
 }
-
 .btn-voltar {
   background: none;
   border: 1px solid #ccc;
@@ -126,11 +137,9 @@ const voltar = () => {
   cursor: pointer;
   transition: 0.3s;
 }
-
 .btn-voltar:hover {
   background: #eee;
 }
-
 .form-container {
   display: flex;
   flex-direction: column;
@@ -140,19 +149,16 @@ const voltar = () => {
   border-radius: 8px;
   box-shadow: 0 4px 15px rgba(0,0,0,0.05);
 }
-
 label {
   font-weight: bold;
   color: #444;
   margin-bottom: -10px;
 }
-
 select, input {
   padding: 12px;
   border-radius: 6px;
   border: 1px solid #ddd;
 }
-
 .button-group {
   margin-top: 10px;
 }

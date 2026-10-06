@@ -11,6 +11,7 @@ import ModalDetalhesCarga from "../components/ModalDetalhesCarga.vue";
 import ModalDetalhesMotorista from "../components/ModalDetalhesMotorista.vue";
 import ModalEditarCarga from "../components/ModalEditarCarga.vue";
 import ModalEditarFrete from "../components/ModalEditarFrete.vue";
+import ModalCriarFreteCompleto from "../components/ModalCriarFreteCompleto.vue";
 
 const router = useRouter();
 const freteStore = useFreteStore();
@@ -20,6 +21,7 @@ const mostrarModalMotorista = ref(false);
 const mostrarModalEditar = ref(false);
 const mostrarModalEditarCarga = ref(false);
 const mostrarModalRota = ref(false);
+const mostrarModalFreteCompleto = ref(false);
 
 const filtroPrecoMax = ref("");
 const filtroUsuario = ref("");
@@ -115,9 +117,8 @@ const excluirFrete = async (id) => {
         <p>Gerencie cargas e acompanhe os status em tempo real.</p>
       </div>
       <div class="header-btns">
-        <LightButton label="Novo Frete" @click="router.push('/fretes/novo')" />
-        <LightButton label="Nova Carga" @click="router.push('/cargas/novo')" />
-        <DarkButton label="Cadastrar Rota" @click="mostrarModalRota = true" />
+        <!-- ➔ Apenas o botão unificado e o botão de voltar -->
+        <DarkButton label="Criar Novo Frete (Completo)" @click="mostrarModalFreteCompleto = true" />
         <LightButton label="Voltar" @click="router.back()" />
       </div>
     </header>
@@ -203,6 +204,7 @@ const excluirFrete = async (id) => {
     </div>
 
     <div v-else class="empty-results">Nenhum frete encontrado.</div>
+    
     <ModalDetalhesCarga
       :isOpen="mostrarModalCarga"
       :carga="freteStore.detalheCarga"
@@ -226,9 +228,11 @@ const excluirFrete = async (id) => {
       @close="mostrarModalEditar = false"
       @salvo="carregarDadosDoPainel"
     />
-    <ModalNovaRota
-      :isOpen="mostrarModalRota"
-      @close="mostrarModalRota = false"
+
+    <!-- ➔ Wizard Integrado -->
+    <ModalCriarFreteCompleto
+      :isOpen="mostrarModalFreteCompleto"
+      @close="() => { mostrarModalFreteCompleto = false; carregarDadosDoPainel(); }"
     />
   </div>
 </template>

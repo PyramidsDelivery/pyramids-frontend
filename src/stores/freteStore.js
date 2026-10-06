@@ -68,11 +68,11 @@ export const useFreteStore = defineStore('frete', {
           ponto_inicial: dadosRota.ponto_inicial,
           ponto_final: dadosRota.ponto_final
         };
-        await api.post('/rotas/', payload);
-        return true;
+        const response = await api.post('/rotas/', payload);
+        return response.data; // ➔ Retorna o objeto criado contendo o ID para o fluxo integrado
       } catch (erro) {
         console.error("Erro ao criar rota:", erro.response?.data || erro);
-        return false;
+        return null;
       }
     },
 
@@ -100,7 +100,6 @@ export const useFreteStore = defineStore('frete', {
       }
     },
 
-    // 🚀 NOVA AÇÃO ADICIONADA PARA O ADMIN ATUALIZAR O FRETE COMPLETO (INCLUINDO LOCALIZAÇÃO)
     async atualizarFreteAdmin(id, dadosFrete) {
       try {
         const payloadFormatado = {
