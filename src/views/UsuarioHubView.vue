@@ -4,14 +4,18 @@ import { useRouter } from 'vue-router';
 import { useFreteStore } from '../stores/freteStore';
 import api from '../services/api';
 import DarkButton from '../components/DarkButton.vue';
-import LightButton from '../components/LightButton.vue';
+import ModalCriarFreteCompleto from '../components/ModalCriarFreteCompleto.vue';
+
 const router = useRouter();
 const freteStore = useFreteStore();
 const listaCargasUser = ref([]);
 const loadingCargas = ref(true);
 const mostrarModalCarga = ref(false);
 const cargaModalDetalhes = ref(null);
-onMounted(async () => {
+
+const mostrarModalFreteCompleto = ref(false);
+
+const carregarDadosUsuario = async () => {
   await freteStore.carregarFretes('cliente');
   try {
     const res = await api.get('cargas/');
@@ -23,12 +27,17 @@ onMounted(async () => {
   } finally {
     loadingCargas.value = false;
   }
-});
+};
+
+onMounted(carregarDadosUsuario);
+
 const meusFretes = computed(() => freteStore.fretesCliente || []);
+
 const getNurmeCarga = (idCarga) => {
   const carga = listaCargasUser.value?.find(c => c.id === idCarga);
   return carga ? carga.descricao : `Carga #${idCarga}`;
 };
+
 const abrirDetalhesCarga = async (idCarga) => {
   if (!idCarga) return;
   try {
@@ -41,6 +50,7 @@ const abrirDetalhesCarga = async (idCarga) => {
   }
 };
 </script>
+
 <template>
   <div class="hub-container">
     <header class="hub-header">
@@ -49,11 +59,10 @@ const abrirDetalhesCarga = async (idCarga) => {
         <p>Acompanhe e gerencie as suas solicitações de frete e cargas cadastradas.</p>
       </div>
       <div class="hub-actions">
-        <LightButton label="Área do Motorista" @click="router.push('/motorista-hub')" class="btn-compacto" />
-        <DarkButton label="Cadastrar Carga" @click="router.push('/cargas/novo')" class="btn-compacto" />
-        <DarkButton label="Solicitar Frete" @click="router.push('/fretes/novo')" class="btn-compacto" />
+        <DarkButton label="Solicitar Frete" @click="mostrarModalFreteCompleto = true" class="btn-compacto" />
       </div>
     </header>
+
     <div class="hub-grid">
       <section class="hub-card">
         <h2>Minhas Cargas Cadastradas</h2>
@@ -69,6 +78,7 @@ const abrirDetalhesCarga = async (idCarga) => {
           </li>
         </ul>
       </section>
+
       <section class="hub-card">
         <h2>Meus Fretes Encomendados</h2>
         <div v-if="freteStore.loading" class="mini-loader">Carregando fretes...</div>
@@ -84,6 +94,7 @@ const abrirDetalhesCarga = async (idCarga) => {
         </ul>
       </section>
     </div>
+
     <div v-if="mostrarModalCarga" class="modal-overlay" @click.self="mostrarModalCarga = false">
       <div class="modal-content">
         <h3>Detalhes da Carga #{{ cargaModalDetalhes?.id }}</h3>
@@ -106,8 +117,14 @@ const abrirDetalhesCarga = async (idCarga) => {
         <button class="close-btn" @click="mostrarModalCarga = false">Fechar</button>
       </div>
     </div>
+
+    <ModalCriarFreteCompleto
+      :isOpen="mostrarModalFreteCompleto"
+      @close="() => { mostrarModalFreteCompleto = false; carregarDadosUsuario(); }"
+    />
   </div>
 </template>
+
 <style scoped>
 .hub-container {
   min-height: 100vh;

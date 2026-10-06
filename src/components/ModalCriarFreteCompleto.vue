@@ -16,16 +16,15 @@ const cargaIdSelecionada = ref(null);
 
 const aoCriarRota = (id) => {
   rotaIdSelecionada.value = id;
-  passo.value = 2; // Avança para o Passo 2
+  passo.value = 2;
 };
 
 const aoCriarCarga = (id) => {
   cargaIdSelecionada.value = id;
-  passo.value = 3; // Avança para o Passo 3
+  passo.value = 3;
 };
 
 const aoConcluirFrete = () => {
-  // Fecha o modal e limpa o estado do wizard, retornando ao painel admin
   fecharModal();
 };
 
@@ -38,36 +37,31 @@ const fecharModal = () => {
 </script>
 
 <template>
-  <div v-if="isOpen" class="modal-overlay">
+  <div v-if="isOpen" class="modal-overlay" @click.self="fecharModal">
     <div class="modal-conteudo-principal">
-      
-      <!-- Cabeçalho do Wizard -->
       <div class="modal-topo">
         <h2>Criar Novo Frete — Passo {{ passo }} de 3</h2>
-        <button class="btn-fechar" @click="fecharModal">&times;</button>
+        <button class="btn-fechar" @click="fecharModal" type="button">&times;</button>
       </div>
       <hr class="divider" />
 
-      <!-- Passo 1: Rota -->
       <div v-if="passo === 1">
         <ModalNovaRota @rota-criada="aoCriarRota" @close="fecharModal" />
       </div>
 
-      <!-- Passo 2: Carga -->
       <div v-if="passo === 2">
-        <CriarCargaView @carga-criada="aoCriarCarga" />
+        <CriarCargaView @carga-criada="aoCriarCarga" @close="fecharModal" />
       </div>
 
-      <!-- Passo 3: Frete Final -->
       <div v-if="passo === 3">
         <CriarFreteView 
           :rotaIdPreDefinido="rotaIdSelecionada" 
           :cargaIdPreDefinido="cargaIdSelecionada" 
           @frete-criado="aoConcluirFrete"
           @salvo="aoConcluirFrete"
+          @cancelar="fecharModal"
         />
       </div>
-
     </div>
   </div>
 </template>
