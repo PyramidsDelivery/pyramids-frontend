@@ -6,6 +6,7 @@ import api from "../services/api";
 
 import DarkButton from "../components/DarkButton.vue";
 import LightButton from "../components/LightButton.vue";
+import BarraFiltrosFretes from "../components/BarraFiltrosFretes.vue";
 import ModalNovaRota from "../components/ModalNovaRota.vue";
 import ModalDetalhesCarga from "../components/ModalDetalhesCarga.vue";
 import ModalDetalhesMotorista from "../components/ModalDetalhesMotorista.vue";
@@ -26,6 +27,7 @@ const mostrarModalFreteCompleto = ref(false);
 const filtroPrecoMax = ref("");
 const filtroUsuario = ref("");
 const buscaCarga = ref("");
+const filtroData = ref("");
 
 const freteSelecionado = ref({});
 const cargaSelecionada = ref({});
@@ -73,6 +75,10 @@ const fretesFiltrados = computed(() =>
         .includes(buscaCarga.value.toLowerCase())
     )
       return false;
+    if (filtroData.value && f.data_criacao) {
+      const dataFrete = f.data_criacao.split("T")[0];
+      if (dataFrete !== filtroData.value) return false;
+    }
     return true;
   }),
 );
@@ -81,11 +87,25 @@ const getStatusClass = (s) =>
   `status-${s?.toLowerCase().replace(/\s+/g, "-") || "default"}`;
 
 const abrirCarga = async (id) => {
-  await freteStore.buscarDetalheCarga(id);
+  try {
+    const res = await api.get(`cargas/${id}/`);
+    freteStore.detalheCarga = res.data;
+  } catch (err) {
+    console.error("Erro ao carregar detalhes da carga:", err);
+    // Fallback para os dados locais se houver erro na API
+    freteStore.detalheCarga = freteStore.opcoes?.cargas?.find((c) => c.id === id) || { id };
+  }
   mostrarModalCarga.value = true;
 };
+
 const abrirMotorista = async (id) => {
-  await freteStore.buscarDetalheMotorista(id);
+  try {
+    const res = await api.get(`motoristas/${id}/`);
+    freteStore.detalheMotorista = res.data;
+  } catch (err) {
+    console.error("Erro ao carregar detalhes do motorista:", err);
+    freteStore.detalheMotorista = freteStore.opcoes?.motoristas?.find((m) => m.id === id) || { id };
+  }
   mostrarModalMotorista.value = true;
 };
 
@@ -93,6 +113,7 @@ const prepararEdicao = (frete) => {
   freteSelecionado.value = { ...frete };
   mostrarModalEditar.value = true;
 };
+
 const prepararEdicaoCarga = (id) => {
   const c = freteStore.opcoes?.cargas?.find((item) => item.id === id);
   if (c) {
@@ -117,41 +138,25 @@ const excluirFrete = async (id) => {
         <p>Gerencie cargas e acompanhe os status em tempo real.</p>
       </div>
       <div class="header-btns">
-        <!-- ➔ Apenas o botão unificado e o botão de voltar -->
         <DarkButton label="Criar Novo Frete (Completo)" @click="mostrarModalFreteCompleto = true" />
         <LightButton label="Voltar" @click="router.back()" />
       </div>
     </header>
 
-    <div class="filter-bar">
-      <input
-        type="text"
-        v-model="buscaCarga"
-        placeholder="Pesquisar Carga..."
-        class="filter-input"
-      />
-      <select v-model="filtroUsuario" class="filter-select">
-        <option value="">Todos os usuários</option>
-        <option v-for="e in listaUsuariosUnicos" :key="e" :value="e">
-          {{ e }}
-        </option>
-      </select>
-      <input
-        type="number"
-        v-model="filtroPrecoMax"
-        placeholder="Preço Máx (R$)"
-        class="filter-input"
-      />
-      <LightButton
-        label="Limpar"
-        @click="
-          buscaCarga = '';
-          filtroUsuario = '';
-          filtroPrecoMax = '';
-        "
-        v-if="buscaCarga || filtroUsuario || filtroPrecoMax"
-      />
-    </div>
+    <BarraFiltrosFretes
+      v-model:buscaCarga="buscaCarga"
+      v-model:filtroUsuario="filtroUsuario"
+      v-model:filtroPrecoMax="filtroPrecoMax"
+      v-model:filtroData="filtroData"
+      :listaUsuariosUnicos="listaUsuariosUnicos"
+      :isAdmin="true"
+      @limpar="
+        buscaCarga = '';
+        filtroUsuario = '';
+        filtroPrecoMax = '';
+        filtroData = '';
+      "
+    />
 
     <div v-if="freteStore.loading" class="loader-container">
       <div class="loader"></div>
@@ -189,7 +194,7 @@ const excluirFrete = async (id) => {
             <td class="actions-cell">
               <LightButton label="Editar" @click="prepararEdicao(f)" />
               <LightButton
-                label="Carga"
+                label="Editar Carga"
                 @click="prepararEdicaoCarga(f.carga)"
               />
               <LightButton
@@ -229,7 +234,6 @@ const excluirFrete = async (id) => {
       @salvo="carregarDadosDoPainel"
     />
 
-    <!-- ➔ Wizard Integrado -->
     <ModalCriarFreteCompleto
       :isOpen="mostrarModalFreteCompleto"
       @close="() => { mostrarModalFreteCompleto = false; carregarDadosDoPainel(); }"
@@ -258,37 +262,17 @@ const excluirFrete = async (id) => {
   flex-wrap: wrap;
   align-items: center;
 }
-
 .header-btns :deep(button) {
   width: auto;
   padding: 8px 14px;
   font-size: 0.85rem;
   border-radius: 8px;
 }
-
 .actions-cell :deep(button) {
   width: auto;
   padding: 6px 10px;
   font-size: 0.8rem;
   border-radius: 6px;
-}
-
-.filter-bar {
-  display: flex;
-  gap: 20px;
-  background: #fff;
-  padding: 18px;
-  border-radius: 14px;
-  margin-bottom: 24px;
-  align-items: center;
-  border: 1px solid #e0e0e0;
-}
-.filter-input,
-.filter-select {
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  flex: 1;
 }
 .table-wrapper {
   background: #fff;
@@ -346,11 +330,7 @@ const excluirFrete = async (id) => {
   animation: spin 0.8s linear infinite;
 }
 @keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 </style>

@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useFreteStore } from '../stores/freteStore';
 import api from '../services/api';
@@ -7,31 +7,91 @@ import LightButton from '../components/LightButton.vue';
 import DarkButton from '../components/DarkButton.vue';
 import BaseInput from '../components/BaseInput.vue';
 import ModalDetalhesCarga from '../components/ModalDetalhesCarga.vue';
+import ModalAceitarFrete from '../components/ModalAceitarFrete.vue';
+
 const router = useRouter();
 const freteStore = useFreteStore();
 const mostrarModalCarga = ref(false);
-const cargaModalDetalhes = ref(null);
+const mostrarModalAceite = ref(false);
+const cargaSelecionada = ref(null);
+const freteSelecionadoParaAceite = ref(null);
 const formAtualizacao = ref({});
 const localizandoGps = ref({});
+const listaCargas = ref([]);
+
 onMounted(async () => {
   await freteStore.carregarFretes('motorista');
+  try {
+    const res = await api.get('cargas/');
+    const data = res.data;
+    listaCargas.value = Array.isArray(data) ? data : (data?.results || []);
+  } catch (error) {
+    console.error("Erro ao carregar cargas:", error);
+    listaCargas.value = [];
+  }
 });
+
+const obterNomeCarga = (idCarga) => {
+  const carga = listaCargas.value?.find(c => c.id === idCarga);
+  return carga ? carga.descricao : `Carga #${idCarga}`;
+};
+
+// Fretes pendentes (aguardando aceitação/recusa)
+const fretesPendentes = computed(() => {
+  const fretes = freteStore.fretesMotorista || [];
+  return fretes.filter(f => f.status === 'PENDENTE');
+});
+
+// Fretes em andamento ou aceites
+const fretesEmAndamento = computed(() => {
+  const fretes = freteStore.fretesMotorista || [];
+  return fretes.filter(f => f.status === 'EM_TRANSITO' || f.status === 'ACEITO');
+});
+
+const abrirModalAceite = (frete) => {
+  freteSelecionadoParaAceite.value = frete;
+  mostrarModalAceite.value = true;
+};
+
+const responderSolicitacao = async (novoStatus) => {
+  if (!freteSelecionadoParaAceite.value) return;
+  const freteId = freteSelecionadoParaAceite.value.id;
+
+  const ok = await freteStore.atualizarFreteMotorista(freteId, novoStatus, null);
+  if (ok) {
+    alert(`Frete ${novoStatus === 'EM_TRANSITO' ? 'aceito' : 'recusado'} com sucesso!`);
+    mostrarModalAceite.value = false;
+    freteSelecionadoParaAceite.value = null;
+    await freteStore.carregarFretes('motorista');
+  } else {
+    alert("Erro ao atualizar o estado do frete.");
+  }
+};
+
 const abrirNoGoogleMaps = (localizacao) => {
   if (!localizacao) return;
   const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(localizacao)}`;
   window.open(url, '_blank');
 };
+
 const abrirDetalhesCarga = async (idCarga) => {
   if (!idCarga) return;
+  const cargaLocal = listaCargas.value?.find(c => c.id === idCarga);
+  if (cargaLocal) {
+    cargaSelecionada.value = cargaLocal;
+    mostrarModalCarga.value = true;
+    return;
+  }
   try {
-    const res = await api.get(`cargas/${idCarga}/`);
-    cargaModalDetalhes.value = res.data;
+    await freteStore.buscarDetalheCarga(idCarga);
+    cargaSelecionada.value = freteStore.detalheCarga;
     mostrarModalCarga.value = true;
   } catch (error) {
     console.error("Erro ao buscar detalhes da carga:", error);
     alert("Erro ao carregar os detalhes desta carga.");
   }
 };
+
 const capturarGps = (freteId) => {
   if (!navigator.geolocation) {
     alert("Seu navegador não suporta geolocalização.");
@@ -46,12 +106,12 @@ const capturarGps = (freteId) => {
         const response = await fetch(
           `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
         const data = await response.json();
-        const endereco = data.display_name || `${lat}, ${lng}`; 
+        const endereco = data.display_name || `${lat},${lng}`; 
         formAtualizacao.value[freteId] = formAtualizacao.value[freteId] || {};
         formAtualizacao.value[freteId].localizacao = endereco;
       } catch {
         formAtualizacao.value[freteId] = formAtualizacao.value[freteId] || {};
-        formAtualizacao.value[freteId].localizacao = `${lat}, ${lng}`;
+        formAtualizacao.value[freteId].localizacao = `${lat},${lng}`;
       } finally {
         localizandoGps.value[freteId] = false;
       }
@@ -64,6 +124,7 @@ const capturarGps = (freteId) => {
     { enableHighAccuracy: true, timeout: 10000 }
   );
 };
+
 const salvarAtualizacaoMotorista = async (freteId) => {
   const dados = formAtualizacao.value[freteId] || {};
   if (!dados.status && !dados.localizacao) {
@@ -84,35 +145,72 @@ const salvarAtualizacaoMotorista = async (freteId) => {
   }
 };
 </script>
+
 <template>
   <div class="hub-container">
     <header class="hub-header">
       <div class="header-info">
         <h1>Painel do Motorista</h1>
-        <p>Acompanhe suas rotas, navegue com Google Maps e atualize seus fretes.</p>
+        <p>Gerencie solicitações, acompanhe rotas e atualize suas entregas.</p>
       </div>
       <div class="hub-actions">
         <LightButton label="← Voltar para Minhas Encomendas" @click="router.push('/usuario-hub')" class="btn-compacto" />
       </div>
     </header>
+
     <div class="hub-section">
-      <section class="hub-card">
-        <h2>Entregas em Andamento</h2>
-        <div v-if="freteStore.loading" class="mini-loader">Carregando entregas...</div>
-        <div v-else-if="!freteStore.fretesMotorista || freteStore.fretesMotorista.length === 0" class="empty-state">
-          Nenhuma entrega atribuída no momento.
-        </div>
-        <ul v-else class="item-list">
-          <li v-for="frete in freteStore.fretesMotorista" :key="frete.id" class="item-row-motorista">
+      <!-- SECÇÃO 1: Solicitações Pendentes (Novos Pedidos) -->
+      <section class="hub-card" v-if="fretesPendentes.length > 0">
+        <h2>Novas Solicitações de Frete (Aguardando Resposta)</h2>
+        <ul class="item-list">
+          <li v-for="frete in fretesPendentes" :key="frete.id" class="item-row-motorista pending-card">
             <div class="frete-info">
               <div class="frete-header-row">
-                <span class="badge-id">Frete #{{ frete.id }}</span>
+                <div class="header-left-badges">
+                  <span class="badge-id">Frete #{{ frete.id }}</span>
+                  <span class="data-criacao" v-if="frete.data_criacao">
+                    Solicitado em: {{ new Date(frete.data_criacao).toLocaleDateString('pt-BR') }}
+                  </span>
+                </div>
+                <span class="status-indicator status-pendente">Pendente</span>
+              </div>
+              <p class="carga-text">
+                Carga: 
+                <strong class="carga-link" @click="abrirDetalhesCarga(frete.carga)">
+                  {{ obterNomeCarga(frete.carga) }}
+                </strong>
+              </p>
+            </div>
+            <div class="solicitacao-acoes">
+              <DarkButton label="Ver Pedido e Decidir" @click="abrirModalAceite(frete)" class="btn-curtinho" />
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <!-- SECÇÃO 2: Entregas em Andamento -->
+      <section class="hub-card" style="margin-top: 25px;">
+        <h2>Meu Frete Ativo / Em Andamento</h2>
+        <div v-if="freteStore.loading" class="mini-loader">Carregando entregas...</div>
+        <div v-else-if="fretesEmAndamento.length === 0" class="empty-state">
+          Nenhum frete ativo no momento. Podes receber novas solicitações.
+        </div>
+        <ul v-else class="item-list">
+          <li v-for="frete in fretesEmAndamento" :key="frete.id" class="item-row-motorista">
+            <div class="frete-info">
+              <div class="frete-header-row">
+                <div class="header-left-badges">
+                  <span class="badge-id">Frete #{{ frete.id }}</span>
+                  <span class="data-criacao" v-if="frete.data_criacao">
+                    Criado em: {{ new Date(frete.data_criacao).toLocaleDateString('pt-BR') }}
+                  </span>
+                </div>
                 <span class="status-indicator">{{ frete.status }}</span>
               </div>
               <p class="carga-text">
                 Carga: 
                 <strong class="carga-link" @click="abrirDetalhesCarga(frete.carga)">
-                  Ver Detalhes da Carga #{{ frete.carga }}
+                  {{ obterNomeCarga(frete.carga) }}
                 </strong>
               </p>
               <div class="localizacao-box">
@@ -144,10 +242,8 @@ const salvarAtualizacaoMotorista = async (freteId) => {
                   v-model="(formAtualizacao[frete.id] = formAtualizacao[frete.id] || {}).status"
                   class="select-sub">
                   <option value="">-- Mudar Status --</option>
-                  <option value="PENDENTE">PENDENTE</option>
                   <option value="EM_TRANSITO">EM_TRANSITO</option>
                   <option value="ENTREGUE">ENTREGUE</option>
-                  <option value="CANCELADO">CANCELADO</option>
                 </select>
                 <DarkButton 
                   label="Atualizar Frete" 
@@ -160,13 +256,24 @@ const salvarAtualizacaoMotorista = async (freteId) => {
         </ul>
       </section>
     </div>
+
     <ModalDetalhesCarga 
       v-if="mostrarModalCarga" 
-      :carga="cargaModalDetalhes" 
+      :isOpen="mostrarModalCarga"
+      :carga="cargaSelecionada" 
       @close="mostrarModalCarga = false" 
+    />
+
+    <ModalAceitarFrete 
+      :isOpen="mostrarModalAceite"
+      :frete="freteSelecionadoParaAceite"
+      :nomeCarga="freteSelecionadoParaAceite ? obterNomeCarga(freteSelecionadoParaAceite.carga) : ''"
+      @close="mostrarModalAceite = false"
+      @responder="responderSolicitacao"
     />
   </div>
 </template>
+
 <style scoped>
 .hub-container {
   min-height: 100vh;
@@ -186,9 +293,6 @@ const salvarAtualizacaoMotorista = async (freteId) => {
   margin-bottom: 30px;
   padding-left: 20px;
   border-left: 5px solid #111;
-  background: transparent;
-  border-bottom: none;
-  padding-bottom: 0;
 }
 .header-info h1 {
   margin: 0;
@@ -202,39 +306,11 @@ const salvarAtualizacaoMotorista = async (freteId) => {
   color: #666;
   font-size: 1rem;
 }
-.hub-actions {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
-.btn-compacto :deep(button),
-.btn-compacto :deep(.light-button) {
-  width: auto !important;
-  display: inline-block !important;
-  padding: 6px 14px !important;
-  font-size: 0.85rem !important;
-  min-height: auto !important;
-}
-.btn-curtinho {
-  display: inline-block !important;
-  width: auto !important;
-  max-width: max-content !important;
-}
-.btn-curtinho :deep(button) {
-  width: auto !important;
-  max-width: max-content !important;
-  display: inline-block !important;
-  padding: 8px 16px !important;
-  font-size: 0.85rem !important;
-  min-height: auto !important;
-  height: auto !important;
-}
 .hub-card {
   background: #fff;
   border-radius: 16px;
   padding: 24px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-  border: none;
 }
 .hub-card h2 {
   font-size: 1.1rem;
@@ -256,11 +332,23 @@ const salvarAtualizacaoMotorista = async (freteId) => {
   padding: 20px;
   margin-bottom: 20px;
 }
+.pending-card {
+  border-left: 4px solid #f39c12;
+  background: #fffdf9;
+}
 .frete-header-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 10px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.header-left-badges {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 .badge-id {
   background: #f1f1f1;
@@ -270,6 +358,10 @@ const salvarAtualizacaoMotorista = async (freteId) => {
   color: #444;
   font-family: monospace;
 }
+.data-criacao {
+  font-size: 0.85rem;
+  color: #666;
+}
 .status-indicator {
   background-color: #e3f2fd;
   color: #0d47a1;
@@ -278,6 +370,10 @@ const salvarAtualizacaoMotorista = async (freteId) => {
   font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
+}
+.status-pendente {
+  background-color: #fff3cd;
+  color: #856404;
 }
 .carga-text {
   margin: 10px 0;
@@ -291,6 +387,11 @@ const salvarAtualizacaoMotorista = async (freteId) => {
 .carga-link:hover {
   text-decoration: underline;
 }
+.solicitacao-acoes {
+  display: flex;
+  gap: 12px;
+  margin-top: 15px;
+}
 .localizacao-box {
   background: #fff;
   padding: 12px;
@@ -298,10 +399,6 @@ const salvarAtualizacaoMotorista = async (freteId) => {
   margin: 12px 0;
   border: 1px solid #e5e5e5;
   font-size: 0.9rem;
-}
-.localizacao-box p {
-  margin: 0 0 8px 0;
-  color: #333;
 }
 .motorista-controles {
   display: flex;
@@ -343,11 +440,5 @@ const salvarAtualizacaoMotorista = async (freteId) => {
   color: #888;
   padding: 30px 0;
   font-style: italic;
-}
-@media (max-width: 768px) {
-  .hub-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
 }
 </style>

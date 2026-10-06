@@ -114,13 +114,14 @@ const finalizarCadastro = async () => {
     return;
   }
 
-  const sucesso = await freteStore.criarFrete(form.value);
-  if (sucesso) {
+  const resultado = await freteStore.criarFrete(form.value);
+  
+  if (resultado && resultado.success === true) {
     alert("Frete cadastrado com sucesso!");
     emit('frete-criado');
     emit('salvo');
   } else {
-    alert("Erro ao cadastrar frete. Verifique o console.");
+    alert(resultado?.message || "Erro ao cadastrar frete. Verifique o console.");
   }
 };
 

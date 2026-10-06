@@ -1,22 +1,33 @@
 <script setup>
-import { onMounted, computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useFreteStore } from '../stores/freteStore';
 import api from '../services/api';
 import DarkButton from '../components/DarkButton.vue';
+import LightButton from '../components/LightButton.vue';
+import BarraFiltrosFretes from '../components/BarraFiltrosFretes.vue';
+import ModalDetalhesCarga from '../components/ModalDetalhesCarga.vue';
+import ModalDetalhesMotorista from '../components/ModalDetalhesMotorista.vue';
 import ModalCriarFreteCompleto from '../components/ModalCriarFreteCompleto.vue';
 
 const router = useRouter();
 const freteStore = useFreteStore();
 const listaCargasUser = ref([]);
-const loadingCargas = ref(true);
-const mostrarModalCarga = ref(false);
-const cargaModalDetalhes = ref(null);
 
+const mostrarModalCarga = ref(false);
+const mostrarModalMotorista = ref(false);
 const mostrarModalFreteCompleto = ref(false);
 
+// Estados da barra de filtros unificada
+const buscaCarga = ref('');
+const filtroPrecoMax = ref('');
+const filtroData = ref('');
+
 const carregarDadosUsuario = async () => {
-  await freteStore.carregarFretes('cliente');
+  await Promise.all([
+    freteStore.carregarFretes('cliente'),
+    freteStore.buscarOpcoesCadastro()
+  ]);
   try {
     const res = await api.get('cargas/');
     const data = res.data;
@@ -24,8 +35,6 @@ const carregarDadosUsuario = async () => {
   } catch (error) {
     console.error("Erro ao carregar cargas do usuário:", error);
     listaCargasUser.value = [];
-  } finally {
-    loadingCargas.value = false;
   }
 };
 
@@ -33,91 +42,127 @@ onMounted(carregarDadosUsuario);
 
 const meusFretes = computed(() => freteStore.fretesCliente || []);
 
-const getNurmeCarga = (idCarga) => {
-  const carga = listaCargasUser.value?.find(c => c.id === idCarga);
-  return carga ? carga.descricao : `Carga #${idCarga}`;
+const obterDescricaoCarga = (id) => {
+  const carga = listaCargasUser.value?.find(c => c.id === id);
+  return carga ? carga.descricao : `Carga #${id}`;
 };
 
-const abrirDetalhesCarga = async (idCarga) => {
-  if (!idCarga) return;
-  try {
-    const res = await api.get(`cargas/${idCarga}/`);
-    cargaModalDetalhes.value = res.data;
-    mostrarModalCarga.value = true;
-  } catch (error) {
-    console.error("Erro ao buscar detalhes da carga:", error);
-    alert("Erro ao carregar os detalhes desta carga.");
-  }
+const obterNomeMotorista = (id) =>
+  freteStore.opcoes?.motoristas?.find((m) => m.id === id)?.nome ||
+  (id ? `Motorista #${id}` : 'Não atribuído');
+
+// Filtro aplicado aos fretes encomendados
+const fretesFiltrados = computed(() => {
+  return meusFretes.value.filter((frete) => {
+    const descricaoCarga = obterDescricaoCarga(frete.carga).toLowerCase();
+    
+    if (buscaCarga.value && !descricaoCarga.includes(buscaCarga.value.toLowerCase())) {
+      return false;
+    }
+    if (filtroPrecoMax.value && parseFloat(frete.valor_frete || 0) > parseFloat(filtroPrecoMax.value)) {
+      return false;
+    }
+    if (filtroData.value && frete.data_criacao) {
+      const dataFrete = frete.data_criacao.split('T')[0];
+      if (dataFrete !== filtroData.value) return false;
+    }
+    return true;
+  });
+});
+
+const getStatusClass = (s) =>
+  `status-${s?.toLowerCase().replace(/\s+/g, "-") || "default"}`;
+
+const abrirCarga = async (id) => {
+  await freteStore.buscarDetalheCarga(id);
+  mostrarModalCarga.value = true;
+};
+
+const abrirMotorista = async (id) => {
+  if (!id) return;
+  await freteStore.buscarDetalheMotorista(id);
+  mostrarModalMotorista.value = true;
 };
 </script>
 
 <template>
-  <div class="hub-container">
-    <header class="hub-header">
-      <div class="header-info">
+  <div class="usuario-container">
+    <header class="usuario-header">
+      <div>
         <h1>Meu Painel de Encomendas</h1>
-        <p>Acompanhe e gerencie as suas solicitações de frete e cargas cadastradas.</p>
+        <p>Acompanhe e gerencie as suas solicitações de frete.</p>
       </div>
-      <div class="hub-actions">
-        <DarkButton label="Solicitar Frete" @click="mostrarModalFreteCompleto = true" class="btn-compacto" />
+      <div class="header-btns">
+        <LightButton label="Área do Motorista" @click="router.push('/motorista-hub')" />
+        <DarkButton label="Solicitar Frete" @click="mostrarModalFreteCompleto = true" />
       </div>
     </header>
 
-    <div class="hub-grid">
-      <section class="hub-card">
-        <h2>Minhas Cargas Cadastradas</h2>
-        <div v-if="loadingCargas" class="mini-loader">Carregando cargas...</div>
-        <div v-else-if="!listaCargasUser.length" class="empty-state">Você ainda não cadastrou nenhuma carga.</div>
-        <ul v-else class="item-list">
-          <li v-for="carga in listaCargasUser" :key="carga.id" class="item-row clickable-row" @click="abrirDetalhesCarga(carga.id)">
-            <div>
-              <span class="badge-id">#{{ carga.id }}</span>
-              <strong>{{ carga.descricao }}</strong>
-            </div>
-            <span class="text-muted">{{ carga.peso }} {{ carga.unidade }}</span>
-          </li>
-        </ul>
-      </section>
+    <!-- Barra de Filtros Unificada com o design do Admin -->
+    <BarraFiltrosFretes
+      v-model:buscaCarga="buscaCarga"
+      v-model:filtroPrecoMax="filtroPrecoMax"
+      v-model:filtroData="filtroData"
+      :isAdmin="false"
+      @limpar="
+        buscaCarga = '';
+        filtroPrecoMax = '';
+        filtroData = '';
+      "
+    />
 
-      <section class="hub-card">
-        <h2>Meus Fretes Encomendados</h2>
-        <div v-if="freteStore.loading" class="mini-loader">Carregando fretes...</div>
-        <div v-else-if="!meusFretes.length" class="empty-state">Nenhum pedido de frete em andamento.</div>
-        <ul v-else class="item-list">
-          <li v-for="frete in meusFretes" :key="frete.id" class="item-row">
-            <div>
-              <span class="badge-id">#{{ frete.id }}</span>
-              <span>Carga: <strong class="carga-link" @click="abrirDetalhesCarga(frete.carga)">{{ getNurmeCarga(frete.carga) }}</strong></span>
-            </div>
-            <span class="status-indicator">{{ frete.status }}</span>
-          </li>
-        </ul>
-      </section>
-    </div>
-
-    <div v-if="mostrarModalCarga" class="modal-overlay" @click.self="mostrarModalCarga = false">
-      <div class="modal-content">
-        <h3>Detalhes da Carga #{{ cargaModalDetalhes?.id }}</h3>
-        <hr /> 
-        <div v-if="cargaModalDetalhes" class="details-grid">
-          <p><strong>Descrição:</strong> {{ cargaModalDetalhes.descricao }}</p>
-          <p><strong>Peso:</strong> {{ cargaModalDetalhes.peso }} {{ cargaModalDetalhes.unidade || 'kg' }}</p>
-          <p><strong>Valor:</strong> R$ {{ cargaModalDetalhes.valor || '0.00' }}</p>
-        </div>
-        <div v-if="cargaModalDetalhes" class="foto-produto-container">
-          <label class="foto-label"><strong>Foto do Produto:</strong></label>
-          <img 
-            v-if="cargaModalDetalhes.foto_url" 
-            :src="cargaModalDetalhes.foto_url.startsWith('http') ? cargaModalDetalhes.foto_url : 'http://localhost:8000' + cargaModalDetalhes.foto_url" 
-            alt="Foto da Carga" 
-            class="foto-detalhe"
-          />
-          <div v-else class="sem-foto-placeholder">Nenhuma foto cadastrada</div>
-        </div>
-        <button class="close-btn" @click="mostrarModalCarga = false">Fechar</button>
+    <!-- Secção de Fretes Encomendados -->
+    <div class="section-container">
+      <h2>Meus Fretes Encomendados</h2>
+      <div v-if="freteStore.loading" class="loader-container">
+        <div class="loader"></div>
+      </div>
+      <div v-else-if="!fretesFiltrados.length" class="empty-results">Nenhum pedido de frete encontrado.</div>
+      <div v-else class="table-wrapper">
+        <table class="fretes-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Carga</th>
+              <th>Motorista</th>
+              <th>Valor</th>
+              <th>Status</th>
+              <th>Data</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="f in fretesFiltrados" :key="f.id">
+              <td>#{{ f.id }}</td>
+              <td class="clickable" @click="abrirCarga(f.carga)">
+                {{ obterDescricaoCarga(f.carga) }}
+              </td>
+              <td class="clickable" @click="abrirMotorista(f.motorista)">
+                {{ obterNomeMotorista(f.motorista) }}
+              </td>
+              <td>{{ f.valor_frete }} {{ f.moeda || 'Reais' }}</td>
+              <td>
+                <span :class="['status-badge', getStatusClass(f.status)]">
+                  {{ f.status }}
+                </span>
+              </td>
+              <td>{{ f.data_criacao ? new Date(f.data_criacao).toLocaleDateString('pt-BR') : '-' }}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
+    <!-- Modais -->
+    <ModalDetalhesCarga
+      :isOpen="mostrarModalCarga"
+      :carga="freteStore.detalheCarga"
+      @close="mostrarModalCarga = false"
+    />
+    <ModalDetalhesMotorista
+      :isOpen="mostrarModalMotorista"
+      :motorista="freteStore.detalheMotorista"
+      @close="mostrarModalMotorista = false"
+    />
     <ModalCriarFreteCompleto
       :isOpen="mostrarModalFreteCompleto"
       @close="() => { mostrarModalFreteCompleto = false; carregarDadosUsuario(); }"
@@ -126,198 +171,115 @@ const abrirDetalhesCarga = async (idCarga) => {
 </template>
 
 <style scoped>
-.hub-container {
-  min-height: 100vh;
-  box-sizing: border-box;
+.usuario-container {
   padding: 40px;
-  background: #f5f5f5;
-  font-family: 'Inter', sans-serif;
-  color: #1a1a1a;
+  background: #f2f2f2;
+  min-height: 100vh;
+  font-family: sans-serif;
   max-width: 1400px;
   margin: 0 auto;
 }
-.hub-header {
+.usuario-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
   gap: 20px;
-  margin-bottom: 30px;
-  padding-left: 20px;
-  border-left: 5px solid #111;
-  background: transparent;
-  border-bottom: none;
-  padding-bottom: 0;
 }
-.header-info h1 {
+.usuario-header h1 {
   margin: 0;
   font-size: 2rem;
   font-weight: 800;
-  letter-spacing: -1px;
   text-transform: uppercase;
 }
-.header-info p {
+.usuario-header p {
   margin-top: 6px;
   color: #666;
-  font-size: 1rem;
 }
-.hub-actions {
+.header-btns {
   display: flex;
   gap: 10px;
+  flex-wrap: wrap;
   align-items: center;
-  flex-wrap: nowrap;
 }
-.btn-compacto {
-  display: inline-block !important;
-  width: auto !important;
+.header-btns :deep(button) {
+  width: auto;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  border-radius: 8px;
 }
-.btn-compacto :deep(button),
-.btn-compacto :deep(.dark-button),
-.btn-compacto :deep(.light-button),
-.btn-compacto :deep(a) {
-  width: auto !important;
-  display: inline-block !important;
-  padding: 8px 16px !important;
-  font-size: 0.85rem !important;
-  min-height: auto !important;
-  height: auto !important;
-  white-space: nowrap !important;
+.section-container {
+  margin-bottom: 35px;
 }
-.hub-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 25px;
-}
-@media (max-width: 900px) {
-  .hub-grid {
-    grid-template-columns: 1fr;
-  }
-  .hub-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  .hub-actions {
-    flex-wrap: wrap;
-    width: 100%;
-  }
-}
-.hub-card {
-  background: #fff;
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-  border: none;
-}
-.hub-card h2 {
+.section-container h2 {
   font-size: 1.1rem;
-  margin: 0 0 20px 0;
+  margin-bottom: 16px;
   color: #111;
   border-left: 4px solid #111;
   padding-left: 8px;
   text-transform: uppercase;
 }
-.item-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
+.table-wrapper {
+  background: #fff;
+  border-radius: 16px;
+  overflow-x: auto;
+  border: 1px solid #e0e0e0;
 }
-.item-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 14px 10px;
-  border-bottom: 1px solid #ececec;
+.fretes-table {
+  width: 100%;
+  border-collapse: collapse;
 }
-.clickable-row {
-  cursor: pointer;
-  transition: background 0.2s ease;
+.fretes-table th {
+  padding: 16px;
+  background: #141414;
+  color: #fff;
+  text-align: left;
+  font-size: 0.78rem;
+  text-transform: uppercase;
 }
-.clickable-row:hover {
-  background-color: #fafafa;
-}
-.carga-link {
-  color: #0d47a1;
-  cursor: pointer;
-}
-.carga-link:hover {
-  text-decoration: underline;
-}
-.badge-id {
-  background: #f1f1f1;
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-size: 0.8rem;
-  margin-right: 8px;
-  color: #444;
-  font-family: monospace;
-}
-.empty-state, .mini-loader {
-  text-align: center;
-  color: #888;
-  padding: 30px 0;
-  font-style: italic;
-}
-.text-muted {
-  color: #777;
+.fretes-table td {
+  padding: 16px;
+  border-bottom: 1px solid #eee;
   font-size: 0.9rem;
 }
-.status-indicator {
-  background-color: #e3f2fd;
-  color: #0d47a1;
+.clickable {
+  text-decoration: underline;
+  cursor: pointer;
+  font-weight: 600;
+}
+.status-badge {
   padding: 4px 10px;
   border-radius: 999px;
   font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
+  background: #e3f2fd;
+  color: #0d47a1;
 }
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.5);
+.empty-results {
+  text-align: center;
+  padding: 32px;
+  background: #fff;
+  border-radius: 14px;
+  color: #6b6b6b;
+}
+.loader-container {
   display: flex;
   justify-content: center;
-  align-items: center;
-  z-index: 999;
+  padding: 30px;
+  color: #666;
 }
-.modal-content {
-  background: white;
-  padding: 25px;
-  border-radius: 16px;
-  width: 90%;
-  max-width: 500px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+.loader {
+  width: 36px;
+  height: 36px;
+  border: 4px solid #e5e5e5;
+  border-top: 4px solid #141414;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
 }
-.details-grid p {
-  margin: 10px 0;
-  font-size: 0.95rem;
-  color: #444;
-}
-.foto-detalhe {
-  max-width: 100%;
-  max-height: 220px;
-  border-radius: 8px;
-  display: block;
-  margin: 0 auto;
-}
-.sem-foto-placeholder {
-  background: #f5f5f5;
-  padding: 20px;
-  text-align: center;
-  color: #999;
-  font-style: italic;
-  border-radius: 8px;
-}
-.close-btn {
-  margin-top: 20px;
-  width: 100%;
-  padding: 10px;
-  background: #111;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 </style>

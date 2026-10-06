@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from 'vue';
+import { useFreteStore } from '../stores/freteStore';
 import ModalNovaRota from './ModalNovaRota.vue';
 import CriarCargaView from '../views/CriarCargaView.vue';
 import CriarFreteView from '../views/CriarFreteView.vue';
@@ -9,19 +10,23 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close']);
+const freteStore = useFreteStore();
 
 const passo = ref(1);
 const rotaIdSelecionada = ref(null);
 const cargaIdSelecionada = ref(null);
+const erroCriacao = ref('');
 
 const aoCriarRota = (id) => {
   rotaIdSelecionada.value = id;
   passo.value = 2;
+  erroCriacao.value = '';
 };
 
 const aoCriarCarga = (id) => {
   cargaIdSelecionada.value = id;
   passo.value = 3;
+  erroCriacao.value = '';
 };
 
 const aoConcluirFrete = () => {
@@ -32,6 +37,7 @@ const fecharModal = () => {
   passo.value = 1;
   rotaIdSelecionada.value = null;
   cargaIdSelecionada.value = null;
+  erroCriacao.value = '';
   emit('close');
 };
 </script>
@@ -44,6 +50,10 @@ const fecharModal = () => {
         <button class="btn-fechar" @click="fecharModal" type="button">&times;</button>
       </div>
       <hr class="divider" />
+
+      <div v-if="erroCriacao" class="alert-erro">
+        {{ erroCriacao }}
+      </div>
 
       <div v-if="passo === 1">
         <ModalNovaRota @rota-criada="aoCriarRota" @close="fecharModal" />
@@ -110,5 +120,14 @@ const fecharModal = () => {
   border: 0;
   border-top: 1px solid #eee;
   margin: 12px 0 20px 0;
+}
+.alert-erro {
+  background: #f8d7da;
+  color: #721c24;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  font-size: 0.9rem;
+  border: 1px solid #f5c6cb;
 }
 </style>
