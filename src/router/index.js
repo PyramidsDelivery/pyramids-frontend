@@ -7,6 +7,8 @@ import HubAdminView from '../views/HubAdminView.vue'
 import UsuariosListView from '../views/UsuariosListView.vue'
 import UsuarioHubView from '../views/UsuarioHubView.vue'
 import CriarFreteView from '../views/CriarFreteView.vue'
+import CriarCargaView from '../views/CriarCargaView.vue'
+import MotoristaHubView from '../views/MotoristaHubView.vue'
 const routes = [
   {
     path: '/',
@@ -46,7 +48,18 @@ const routes = [
   path: '/fretes/novo',
   name: 'criar-frete',
   component: CriarFreteView,
-  meta: { requiresAdmin: true }
+  meta: { requiresAdmin: false }
+ },
+ {
+  path: '/cargas/novo',
+  name: 'criar-carga',
+  component: CriarCargaView,
+  meta: { requiresAdmin: false }
+ },
+ {
+  path: '/motorista-hub',
+  name: 'motorista-hub',
+  component: MotoristaHubView
 },
 ]
 

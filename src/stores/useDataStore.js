@@ -2,13 +2,21 @@ import { defineStore } from 'pinia';
 import api from '../services/api';
 
 export const useDataStore = defineStore('data', {
-  state: () => ({
-    token: localStorage.getItem('token') || '',
-    isStaff: localStorage.getItem('is_staff') === 'true',
-    isSuperuser: localStorage.getItem('is_superuser') === 'true',
-    user: null,
-    items: [],
-  }),
+  state: () => {
+    const token = localStorage.getItem('token') || '';
+    // Se já houver um token guardado, configura o Axios automaticamente no boot do app
+    if (token) {
+      api.defaults.headers.common['Authorization'] = `Token ${token}`;
+    }
+    
+    return {
+      token: token,
+      isStaff: localStorage.getItem('is_staff') === 'true',
+      isSuperuser: localStorage.getItem('is_superuser') === 'true',
+      user: null,
+      items: [],
+    };
+  },
   actions: {
     async login(email, password) {
       try {
@@ -35,11 +43,9 @@ export const useDataStore = defineStore('data', {
       }
     },
 
-   
     async cadastro(nome, email, password) {
       try {
         await api.post('registro/', { 
-         
           email: email, 
           name: nome,     
           password: password 
@@ -51,7 +57,6 @@ export const useDataStore = defineStore('data', {
         return false;
       }
     },
-
 
     logout() {
       this.token = '';

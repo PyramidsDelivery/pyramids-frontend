@@ -1,39 +1,132 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
-import { useRouter } from 'vue-router';
-import { useFreteStore } from '../stores/freteStore';
+import { computed, onMounted, ref } from "vue";
+import { useRouter } from "vue-router";
+import { useFreteStore } from "../stores/freteStore";
+import api from "../services/api";
+
+import DarkButton from "../components/DarkButton.vue";
+import LightButton from "../components/LightButton.vue";
+import BarraFiltrosFretes from "../components/BarraFiltrosFretes.vue";
+import ModalNovaRota from "../components/ModalNovaRota.vue";
+import ModalDetalhesCarga from "../components/ModalDetalhesCarga.vue";
+import ModalDetalhesMotorista from "../components/ModalDetalhesMotorista.vue";
+import ModalEditarCarga from "../components/ModalEditarCarga.vue";
+import ModalEditarFrete from "../components/ModalEditarFrete.vue";
+import ModalCriarFreteCompleto from "../components/ModalCriarFreteCompleto.vue";
 
 const router = useRouter();
 const freteStore = useFreteStore();
 
-// Controle de visibilidade dos modais
 const mostrarModalCarga = ref(false);
 const mostrarModalMotorista = ref(false);
+const mostrarModalEditar = ref(false);
+const mostrarModalEditarCarga = ref(false);
+const mostrarModalRota = ref(false);
+const mostrarModalFreteCompleto = ref(false);
 
-onMounted(async () => {
-  await freteStore.carregarFretes();
-});
+const filtroPrecoMax = ref("");
+const filtroUsuario = ref("");
+const buscaCarga = ref("");
+const filtroData = ref("");
 
-const listaFretes = computed(() => freteStore.listaFretes || []);
+const freteSelecionado = ref({});
+const cargaSelecionada = ref({});
 
-const getStatusClass = (status) => {
-  if (!status) return 'status-default';
-  return `status-${status
-    .toLowerCase()
-    .replace(/\s+/g, '-')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')}`;
+const carregarDadosDoPainel = async () => {
+  await Promise.all([
+    freteStore.carregarFretes(),
+    freteStore.buscarOpcoesCadastro(),
+  ]);
 };
 
-// Funções para abrir detalhes
+onMounted(carregarDadosDoPainel);
+
+const listaFretes = computed(() =>
+  Array.isArray(freteStore.listaFretes)
+    ? freteStore.listaFretes
+    : freteStore.listaFretes?.results || [],
+);
+const listaUsuariosUnicos = computed(() =>
+  [
+    ...new Set(listaFretes.value.map((f) => f.usuario_email).filter(Boolean)),
+  ].sort(),
+);
+
+const obterDescricaoCarga = (id) =>
+  freteStore.opcoes?.cargas?.find((c) => c.id === id)?.descricao ||
+  `Carga #${id}`;
+const obterNomeMotorista = (id) =>
+  freteStore.opcoes?.motoristas?.find((m) => m.id === id)?.nome ||
+  `Motorista #${id}`;
+
+const fretesFiltrados = computed(() =>
+  listaFretes.value.filter((f) => {
+    if (
+      filtroPrecoMax.value &&
+      parseFloat(f.valor_frete) > parseFloat(filtroPrecoMax.value)
+    )
+      return false;
+    if (filtroUsuario.value && f.usuario_email !== filtroUsuario.value)
+      return false;
+    if (
+      buscaCarga.value &&
+      !obterDescricaoCarga(f.carga)
+        .toLowerCase()
+        .includes(buscaCarga.value.toLowerCase())
+    )
+      return false;
+    if (filtroData.value && f.data_criacao) {
+      const dataFrete = f.data_criacao.split("T")[0];
+      if (dataFrete !== filtroData.value) return false;
+    }
+    return true;
+  }),
+);
+
+const getStatusClass = (s) =>
+  `status-${s?.toLowerCase().replace(/\s+/g, "-") || "default"}`;
+
 const abrirCarga = async (id) => {
-  await freteStore.buscarDetalheCarga(id);
+  try {
+    const res = await api.get(`cargas/${id}/`);
+    freteStore.detalheCarga = res.data;
+  } catch (err) {
+    console.error("Erro ao carregar detalhes da carga:", err);
+    // Fallback para os dados locais se houver erro na API
+    freteStore.detalheCarga = freteStore.opcoes?.cargas?.find((c) => c.id === id) || { id };
+  }
   mostrarModalCarga.value = true;
 };
 
 const abrirMotorista = async (id) => {
-  await freteStore.buscarDetalheMotorista(id);
+  try {
+    const res = await api.get(`motoristas/${id}/`);
+    freteStore.detalheMotorista = res.data;
+  } catch (err) {
+    console.error("Erro ao carregar detalhes do motorista:", err);
+    freteStore.detalheMotorista = freteStore.opcoes?.motoristas?.find((m) => m.id === id) || { id };
+  }
   mostrarModalMotorista.value = true;
+};
+
+const prepararEdicao = (frete) => {
+  freteSelecionado.value = { ...frete };
+  mostrarModalEditar.value = true;
+};
+
+const prepararEdicaoCarga = (id) => {
+  const c = freteStore.opcoes?.cargas?.find((item) => item.id === id);
+  if (c) {
+    cargaSelecionada.value = { ...c };
+    mostrarModalEditarCarga.value = true;
+  }
+};
+
+const excluirFrete = async (id) => {
+  if (confirm(`Excluir Frete #${id}?`)) {
+    await api.delete(`fretes/${id}/`);
+    await carregarDadosDoPainel();
+  }
 };
 </script>
 
@@ -45,327 +138,199 @@ const abrirMotorista = async (id) => {
         <p>Gerencie cargas e acompanhe os status em tempo real.</p>
       </div>
       <div class="header-btns">
-    <button class="add-button" @click="router.push('/fretes/novo')">
-      + Novo Frete
-    </button>
-    <button class="back-button" @click="router.back()">Voltar</button>
-  </div>
+        <DarkButton label="Criar Novo Frete (Completo)" @click="mostrarModalFreteCompleto = true" />
+        <LightButton label="Voltar" @click="router.back()" />
+      </div>
     </header>
+
+    <BarraFiltrosFretes
+      v-model:buscaCarga="buscaCarga"
+      v-model:filtroUsuario="filtroUsuario"
+      v-model:filtroPrecoMax="filtroPrecoMax"
+      v-model:filtroData="filtroData"
+      :listaUsuariosUnicos="listaUsuariosUnicos"
+      :isAdmin="true"
+      @limpar="
+        buscaCarga = '';
+        filtroUsuario = '';
+        filtroPrecoMax = '';
+        filtroData = '';
+      "
+    />
 
     <div v-if="freteStore.loading" class="loader-container">
       <div class="loader"></div>
-      <span>Buscando dados no servidor...</span>
     </div>
 
-    <div v-else-if="listaFretes.length" class="table-wrapper">
+    <div v-else-if="fretesFiltrados.length" class="table-wrapper">
       <table class="fretes-table">
         <thead>
           <tr>
             <th>ID</th>
+            <th>Solicitante</th>
             <th>Carga</th>
             <th>Motorista</th>
             <th>Valor</th>
             <th>Status</th>
+            <th>Ações</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="frete in listaFretes" :key="frete.id">
-            <td class="id-cell">#{{ frete.id }}</td>
-            
-            <td class="clickable-cell" @click="abrirCarga(frete.carga)">
-              {{ frete.carga }}
+          <tr v-for="f in fretesFiltrados" :key="f.id">
+            <td>#{{ f.id }}</td>
+            <td>{{ f.usuario_email }}</td>
+            <td class="clickable" @click="abrirCarga(f.carga)">
+              {{ obterDescricaoCarga(f.carga) }}
             </td>
-
-            <td class="clickable-cell" @click="abrirMotorista(frete.motorista)">
-              {{ frete.motorista }}
+            <td class="clickable" @click="abrirMotorista(f.motorista)">
+              {{ obterNomeMotorista(f.motorista) }}
             </td>
-
-            <td class="price-cell">
-               {{ frete.valor_frete }} {{ frete.moeda }}
-            </td>
+            <td>{{ f.valor_frete }} {{ f.moeda }}</td>
             <td>
-              <span :class="['status-badge', getStatusClass(frete.status)]">
-                {{ frete.status }}
-              </span>
+              <span :class="['status-badge', getStatusClass(f.status)]">{{
+                f.status
+              }}</span>
+            </td>
+            <td class="actions-cell">
+              <LightButton label="Editar" @click="prepararEdicao(f)" />
+              <LightButton
+                label="Editar Carga"
+                @click="prepararEdicaoCarga(f.carga)"
+              />
+              <LightButton
+                label="Excluir"
+                class="btn-danger"
+                @click="excluirFrete(f.id)"
+              />
             </td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <div v-if="mostrarModalCarga" class="modal-overlay" @click.self="mostrarModalCarga = false">
-      <div class="modal-content">
-        <h3>Detalhes da Carga #{{ freteStore.detalheCarga?.id }}</h3>
-        <hr />
-        <div v-if="freteStore.detalheCarga" class="details-grid">
-          <p><strong>Descrição:</strong> {{ freteStore.detalheCarga.descricao }}</p>
-          <p><strong>Peso:</strong> {{ freteStore.detalheCarga.peso }} kg</p>
-        </div>
-        <button class="close-btn" @click="mostrarModalCarga = false">Fechar</button>
-      </div>
-    </div>
+    <div v-else class="empty-results">Nenhum frete encontrado.</div>
+    
+    <ModalDetalhesCarga
+      :isOpen="mostrarModalCarga"
+      :carga="freteStore.detalheCarga"
+      @close="mostrarModalCarga = false"
+    />
+    <ModalDetalhesMotorista
+      :isOpen="mostrarModalMotorista"
+      :motorista="freteStore.detalheMotorista"
+      @close="mostrarModalMotorista = false"
+    />
+    <ModalEditarCarga
+      :isOpen="mostrarModalEditarCarga"
+      :carga="cargaSelecionada"
+      @close="mostrarModalEditarCarga = false"
+      @salvo="carregarDadosDoPainel"
+    />
+    <ModalEditarFrete
+      :isOpen="mostrarModalEditar"
+      :frete="freteSelecionado"
+      :opcoes="freteStore.opcoes"
+      @close="mostrarModalEditar = false"
+      @salvo="carregarDadosDoPainel"
+    />
 
-    <div v-if="mostrarModalMotorista" class="modal-overlay" @click.self="mostrarModalMotorista = false">
-      <div class="modal-content">
-        <h3>Informações do Motorista</h3>
-        <hr />
-        <div v-if="freteStore.detalheMotorista" class="details-grid">
-          <p><strong>Nome:</strong> {{ freteStore.detalheMotorista.nome }}</p>
-          <p><strong>CNH:</strong> {{ freteStore.detalheMotorista.cnh }}</p>
-          <!-- <p><strong>Telefone:</strong> {{ freteStore.detalheMotorista.telefone }}</p> -->
-        </div>
-        <button class="close-btn" @click="mostrarModalMotorista = false">Fechar</button>
-      </div>
-    </div>
+    <ModalCriarFreteCompleto
+      :isOpen="mostrarModalFreteCompleto"
+      @close="() => { mostrarModalFreteCompleto = false; carregarDadosDoPainel(); }"
+    />
   </div>
 </template>
 
 <style scoped>
-.clickable-cell {
-  color: #3498db;
-  text-decoration: underline;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background: white;
-  padding: 2rem;
-  border-radius: 8px;
-  min-width: 300px;
-  color: #333;
-}
-
-.details-grid p {
-  margin: 10px 0;
-}
-
-.close-btn {
-  margin-top: 20px;
-  width: 100%;
-  padding: 10px;
-  background: #333;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-* {
-  box-sizing: border-box;
-}
-
 .admin-container {
-  min-height: 100vh;
   padding: 40px;
-  background: #f5f5f5;
-  font-family: 'Inter', sans-serif;
-  color: #1a1a1a;
+  background: #f2f2f2;
+  min-height: 100vh;
+  font-family: sans-serif;
 }
-
 .admin-header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
   gap: 20px;
-  margin-bottom: 30px;
-  padding-left: 20px;
-  border-left: 5px solid #111;
 }
-
-.admin-header h1 {
-  margin: 0;
-  font-size: 2rem;
-  font-weight: 800;
-  letter-spacing: -1px;
-  text-transform: uppercase;
+.header-btns {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
 }
-
-.admin-header p {
-  margin-top: 6px;
-  color: #666;
+.header-btns :deep(button) {
+  width: auto;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  border-radius: 8px;
 }
-
-.back-button {
-  border: none;
-  background: #111;
-  color: white;
-  padding: 12px 20px;
-  border-radius: 10px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: 0.2s ease;
+.actions-cell :deep(button) {
+  width: auto;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  border-radius: 6px;
 }
-
-.back-button:hover {
-  opacity: 0.9;
-  transform: translateY(-1px);
-}
-
 .table-wrapper {
-  overflow-x: auto;
-  background: white;
+  background: #fff;
   border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  overflow-x: auto;
+  border: 1px solid #e0e0e0;
 }
-
 .fretes-table {
   width: 100%;
   border-collapse: collapse;
 }
-
-.fretes-table thead {
-  background: #111;
-}
-
 .fretes-table th {
-  padding: 18px 20px;
-  color: white;
+  padding: 16px;
+  background: #141414;
+  color: #fff;
   text-align: left;
-  font-size: 0.85rem;
-  font-weight: 700;
+  font-size: 0.78rem;
   text-transform: uppercase;
-  letter-spacing: 1px;
 }
-
 .fretes-table td {
-  padding: 18px 20px;
-  border-bottom: 1px solid #ececec;
-  font-size: 0.95rem;
-  color: #444;
+  padding: 16px;
+  border-bottom: 1px solid #eee;
+  font-size: 0.9rem;
 }
-
-.fretes-table tbody tr {
-  transition: background 0.2s ease;
-}
-
-.fretes-table tbody tr:hover {
-  background: #fafafa;
-}
-
-.id-cell {
-  color: #8b8b8b;
-  font-family: monospace;
-}
-
-.driver-cell {
+.clickable {
+  text-decoration: underline;
+  cursor: pointer;
   font-weight: 600;
-  color: #111;
 }
-
-.price-cell {
-  font-weight: 700;
-  color: #111;
+.actions-cell {
+  display: flex;
+  gap: 8px;
 }
-
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 120px;
-  padding: 8px 14px;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
+.btn-danger {
+  color: #b3261e !important;
 }
-
-.status-pendente {
-  background: #fff3cd;
-  color: #856404;
+.empty-results {
+  text-align: center;
+  padding: 48px;
+  background: #fff;
+  border-radius: 14px;
+  color: #6b6b6b;
 }
-
-.status-concluido {
-  background: #111;
-  color: white;
-}
-
-.status-em-transito {
-  background: #e3f2fd;
-  color: #0d47a1;
-}
-
-.status-default {
-  background: #e0e0e0;
-  color: #444;
-}
-
 .loader-container {
   display: flex;
-  flex-direction: column;
-  align-items: center;
   justify-content: center;
   margin-top: 80px;
-  color: #666;
 }
-
 .loader {
-  width: 45px;
-  height: 45px;
-  margin-bottom: 15px;
+  width: 42px;
+  height: 42px;
   border: 4px solid #e5e5e5;
-  border-top: 4px solid #111;
+  border-top: 4px solid #141414;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
-
-.empty-state {
-  padding: 60px 20px;
-  text-align: center;
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-}
-
-.empty-state h2 {
-  margin-bottom: 10px;
-}
-
-.empty-state p {
-  color: #666;
-}
-
 @keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-@media (max-width: 768px) {
-  .admin-container {
-    padding: 20px;
-  }
-
-  .admin-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .fretes-table th,
-  .fretes-table td {
-    padding: 14px;
-    font-size: 0.85rem;
-  }
-
-  .status-badge {
-    min-width: auto;
-    width: 100%;
-  }
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 </style>
