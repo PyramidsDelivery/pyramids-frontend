@@ -83,10 +83,22 @@ const abrirMotorista = async (id) => {
   await freteStore.buscarDetalheMotorista(id);
   mostrarModalMotorista.value = true;
 };
+
+function fazerLogout() {
+  localStorage.removeItem('access_token');
+  localStorage.removeItem('refresh_token');
+  localStorage.clear();
+  router.push('/');
+}
 </script>
 
 <template>
   <div class="usuario-container">
+    <!-- Botão de Sair isolado no canto superior direito absoluto da página -->
+    <div class="logout-top-corner">
+      <DarkButton label="Sair" @click="fazerLogout" />
+    </div>
+
     <header class="usuario-header">
       <div>
         <h1>Meu Painel de Encomendas</h1>
@@ -154,16 +166,19 @@ const abrirMotorista = async (id) => {
 
     <!-- Modais -->
     <ModalDetalhesCarga
+      v-if="mostrarModalCarga"
       :isOpen="mostrarModalCarga"
       :carga="freteStore.detalheCarga"
       @close="mostrarModalCarga = false"
     />
     <ModalDetalhesMotorista
+      v-if="mostrarModalMotorista"
       :isOpen="mostrarModalMotorista"
       :motorista="freteStore.detalheMotorista"
       @close="mostrarModalMotorista = false"
     />
     <ModalCriarFreteCompleto
+      v-if="mostrarModalFreteCompleto"
       :isOpen="mostrarModalFreteCompleto"
       @close="() => { mostrarModalFreteCompleto = false; carregarDadosUsuario(); }"
     />
@@ -178,11 +193,26 @@ const abrirMotorista = async (id) => {
   font-family: sans-serif;
   max-width: 1400px;
   margin: 0 auto;
+  position: relative; /* Mantém o posicionamento absoluto relativo a esta view */
 }
+
+.logout-top-corner {
+  position: absolute;
+  top: 20px;
+  right: 40px;
+}
+
+.logout-top-corner :deep(button) {
+  padding: 5px 12px;
+  font-size: 0.75rem;
+  border-radius: 6px;
+}
+
 .usuario-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-top: 20px; /* Garante que o header desça um pouco para não bater no botão de sair */
   margin-bottom: 28px;
   flex-wrap: wrap;
   gap: 20px;
