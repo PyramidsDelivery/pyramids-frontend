@@ -1,37 +1,67 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useFreteStore } from '../stores/freteStore';
+import api from '../services/api';
 import DarkButton from './DarkButton.vue';
 
 const props = defineProps({
   isOpen: Boolean,
   frete: Object,
-  nomeCarga: String,
-  pontoInicial: String,
-  pontoFinal: String
+  nomeCarga: String
 });
 
 const emit = defineEmits(['close', 'responder']);
 const freteStore = useFreteStore();
+const rotaDetalheExtra = ref(null);
 
-// Procura a rota na store de opções caso o frete traga apenas o ID
+// Observa o frete selecionado e busca a rota na API se não estiver disponível localmente
+watch(() => props.frete, async (novoFrete) => {
+  rotaDetalheExtra.value = null;
+  if (!novoFrete) return;
+
+  // Se o frete já trouxer o objeto de rota aninhado, usa-o diretamente
+  if (novoFrete.rota_detalhes) {
+    rotaDetalheExtra.value = novoFrete.rota_detalhes;
+    return;
+  }
+
+  // Caso contrário, se tivermos apenas o ID da rota
+  const idRota = typeof novoFrete.rota === 'object' ? novoFrete.rota?.id : novoFrete.rota;
+  if (idRota) {
+    const jaExiste = freteStore.opcoes.rotas.some(r => Number(r.id || r.pk) === Number(idRota));
+    if (!jaExiste) {
+      try {
+        const res = await api.get(`rotas/${idRota}/`);
+        rotaDetalheExtra.value = res.data;
+      } catch (err) {
+        console.error("Erro ao buscar detalhe isolado da rota no modal:", err);
+      }
+    }
+  }
+}, { immediate: true });
+
 const rotaEncontrada = computed(() => {
-  if (!props.frete?.rota) return null;
-  if (typeof props.frete.rota === 'object') return props.frete.rota;
-  return freteStore.opcoes.rotas.find(r => r.id === props.frete.rota);
+  if (!props.frete) return null;
+  if (rotaDetalheExtra.value) return rotaDetalheExtra.value;
+  if (typeof props.frete.rota === 'object' && props.frete.rota !== null) return props.frete.rota;
+  
+  const idBusca = Number(props.frete.rota);
+  return freteStore.opcoes.rotas.find(r => Number(r.id || r.pk) === idBusca);
 });
 
 const origemExibida = computed(() => {
-  return props.pontoInicial || 
-         props.frete?.rota_detalhes?.ponto_inicial || 
+  return props.frete?.rota_detalhes?.ponto_inicial || 
          rotaEncontrada.value?.ponto_inicial || 
+         rotaEncontrada.value?.origem || 
+         rotaEncontrada.value?.pontoInicial ||
          'Não informada';
 });
 
 const destinoExibido = computed(() => {
-  return props.pontoFinal || 
-         props.frete?.rota_detalhes?.ponto_final || 
+  return props.frete?.rota_detalhes?.ponto_final || 
          rotaEncontrada.value?.ponto_final || 
+         rotaEncontrada.value?.destino || 
+         rotaEncontrada.value?.pontoFinal ||
          'Não informada';
 });
 
@@ -51,11 +81,8 @@ const confirmar = (status) => {
 
       <div class="modal-corpo" v-if="frete">
         <p><strong>Carga:</strong> {{ nomeCarga }}</p>
-        
-        <!-- Origem e Destino Atualizados -->
         <p><strong>Origem:</strong> {{ origemExibida }}</p>
         <p><strong>Destino:</strong> {{ destinoExibido }}</p>
-
         <p><strong>Valor do Frete:</strong> {{ frete.valor_frete }} {{ frete.moeda || 'Reais' }}</p>
         <p><strong>Data de Solicitação:</strong> {{ frete.data_criacao ? new Date(frete.data_criacao).toLocaleDateString('pt-BR') : '-' }}</p>
         <p class="aviso-regra">Deseja aceitar este pedido? Ao aceitar, este será o seu frete ativo até ser concluído.</p>

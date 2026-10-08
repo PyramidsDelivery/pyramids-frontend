@@ -20,7 +20,11 @@ const localizandoGps = ref({});
 const listaCargas = ref([]);
 
 onMounted(async () => {
-  await freteStore.carregarFretes('motorista');
+  await Promise.all([
+    freteStore.carregarFretes('motorista'),
+    freteStore.buscarOpcoesCadastro()
+  ]);
+  
   try {
     const res = await api.get('cargas/');
     const data = res.data;
@@ -32,17 +36,16 @@ onMounted(async () => {
 });
 
 const obterNomeCarga = (idCarga) => {
-  const carga = listaCargas.value?.find(c => c.id === idCarga);
+  const carga = listaCargas.value?.find(c => c.id === idCarga) || 
+                freteStore.opcoes.cargas?.find(c => c.id === idCarga);
   return carga ? carga.descricao : `Carga #${idCarga}`;
 };
 
-// Fretes pendentes (aguardando aceitação/recusa)
 const fretesPendentes = computed(() => {
   const fretes = freteStore.fretesMotorista || [];
   return fretes.filter(f => f.status === 'PENDENTE');
 });
 
-// Fretes em andamento ou aceites
 const fretesEmAndamento = computed(() => {
   const fretes = freteStore.fretesMotorista || [];
   return fretes.filter(f => f.status === 'EM_TRANSITO' || f.status === 'ACEITO');
@@ -159,7 +162,6 @@ const salvarAtualizacaoMotorista = async (freteId) => {
     </header>
 
     <div class="hub-section">
-      <!-- SECÇÃO 1: Solicitações Pendentes (Novos Pedidos) -->
       <section class="hub-card" v-if="fretesPendentes.length > 0">
         <h2>Novas Solicitações de Frete (Aguardando Resposta)</h2>
         <ul class="item-list">
@@ -188,7 +190,6 @@ const salvarAtualizacaoMotorista = async (freteId) => {
         </ul>
       </section>
 
-      <!-- SECÇÃO 2: Entregas em Andamento -->
       <section class="hub-card" style="margin-top: 25px;">
         <h2>Meu Frete Ativo / Em Andamento</h2>
         <div v-if="freteStore.loading" class="mini-loader">Carregando entregas...</div>
