@@ -1,10 +1,11 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import api from '../services/api'; // Certifique-se de que o caminho para sua api está correto
+import api from '../services/api';
 import DarkButton from '../components/DarkButton.vue';
 
 const router = useRouter();
+const emit = defineEmits(['carga-criada']); // ➔ Emit adicionado
 
 const form = ref({
   descricao: '',
@@ -16,7 +17,6 @@ const form = ref({
 
 const fotoArquivo = ref(null);
 
-// Captura a foto que o usuário selecionou no computador/celular
 const handleFileUpload = (event) => {
   const arquivo = event.target.files[0];
   if (arquivo) {
@@ -30,7 +30,6 @@ const finalizarCadastro = async () => {
     return;
   }
 
-  // IMPORTANTE: Como estamos enviando um arquivo de imagem, usamos FormData em vez de JSON bruto
   const formData = new FormData();
   formData.append('descricao', form.value.descricao);
   formData.append('peso', form.value.peso);
@@ -43,14 +42,19 @@ const finalizarCadastro = async () => {
   }
 
   try {
-    // Passamos o Header multipart/form-data avisando a API que vai uma foto junto
-    await api.post('cargas/', formData, {
+    const response = await api.post('cargas/', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
     });
     alert("Carga cadastrada com sucesso!");
-    router.back(); // Retorna para a página anterior após salvar
+
+    // ➔ Se estiver no fluxo integrado, emite o ID, caso contrário comporta-se normalmente
+    if (response.data && response.data.id) {
+      emit('carga-criada', response.data.id);
+    } else {
+      router.back();
+    }
   } catch (error) {
     console.error("Erro ao cadastrar carga:", error.response?.data || error);
     alert("Erro ao cadastrar carga. Verifique os dados inseridos.");
@@ -115,14 +119,12 @@ const finalizarCadastro = async () => {
   max-width: 600px;
   margin: 0 auto;
 }
-
 .header-actions {
   display: flex;
   align-items: center;
   gap: 20px;
   margin-bottom: 20px;
 }
-
 .btn-voltar {
   background: none;
   border: 1px solid #ccc;
@@ -131,11 +133,9 @@ const finalizarCadastro = async () => {
   cursor: pointer;
   transition: 0.3s;
 }
-
 .btn-voltar:hover {
   background: #eee;
 }
-
 .form-container {
   display: flex;
   flex-direction: column;
@@ -145,39 +145,33 @@ const finalizarCadastro = async () => {
   border-radius: 8px;
   box-shadow: 0 4px 15px rgba(0,0,0,0.05);
 }
-
 .row-group {
   display: flex;
   gap: 15px;
 }
-
 .field {
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 15px;
 }
-
 label {
   font-weight: bold;
   color: #444;
   margin-bottom: -10px;
 }
-
 select, input {
   padding: 12px;
   border-radius: 6px;
   border: 1px solid #ddd;
   font-size: 1rem;
 }
-
 .file-input {
   padding: 8px;
   background: #fdfdfd;
   border: 1px dashed #ccc;
   cursor: pointer;
 }
-
 .button-group {
   margin-top: 10px;
 }

@@ -1,314 +1,315 @@
 <script setup>
-import { onMounted, computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useFreteStore } from '../stores/freteStore';
 import api from '../services/api';
+import DarkButton from '../components/DarkButton.vue';
+import LightButton from '../components/LightButton.vue';
+import BarraFiltrosFretes from '../components/BarraFiltrosFretes.vue';
+import ModalDetalhesCarga from '../components/ModalDetalhesCarga.vue';
+import ModalDetalhesMotorista from '../components/ModalDetalhesMotorista.vue';
+import ModalCriarFreteCompleto from '../components/ModalCriarFreteCompleto.vue';
 
 const router = useRouter();
 const freteStore = useFreteStore();
+const listaCargasUser = ref([]);
 
-const listaCargasUser = ref([]); // Garantimos que inicia como um array vazio
-const loadingCargas = ref(true);
 const mostrarModalCarga = ref(false);
+const mostrarModalMotorista = ref(false);
+const mostrarModalFreteCompleto = ref(false);
 
-onMounted(async () => {
-  // 1. Carrega os fretes vinculados a este usuário
-  await freteStore.carregarFretes();
+// Estados da barra de filtros unificada
+const buscaCarga = ref('');
+const filtroPrecoMax = ref('');
+const filtroData = ref('');
 
-  // 2. Carrega as cargas vinculadas a este usuário diretamente da API
+const carregarDadosUsuario = async () => {
+  await Promise.all([
+    freteStore.carregarFretes('cliente'),
+    freteStore.buscarOpcoesCadastro()
+  ]);
   try {
-    const response = await api.get('cargas/');
-    console.log("Dados brutos vindos da API cargas/:", response.data);
-    
-    // TRATAMENTO DA PAGINAÇÃO DO DRF:
-    // Se response.data for um array, usa direto. Se for um objeto com .results, extrai o array dali.
-    if (Array.isArray(response.data)) {
-      listaCargasUser.value = response.data;
-    } else if (response.data && Array.isArray(response.data.results)) {
-      listaCargasUser.value = response.data.results;
-    } else {
-      listaCargasUser.value = [];
-    }
+    const res = await api.get('cargas/');
+    const data = res.data;
+    listaCargasUser.value = Array.isArray(data) ? data : (data?.results || []);
   } catch (error) {
-    console.error("Erro ao carregar as cargas do usuário:", error);
+    console.error("Erro ao carregar cargas do usuário:", error);
     listaCargasUser.value = [];
-  } finally {
-    loadingCargas.value = false;
   }
+};
+
+onMounted(carregarDadosUsuario);
+
+const meusFretes = computed(() => freteStore.fretesCliente || []);
+
+const obterDescricaoCarga = (id) => {
+  const carga = listaCargasUser.value?.find(c => c.id === id);
+  return carga ? carga.descricao : `Carga #${id}`;
+};
+
+const obterNomeMotorista = (id) =>
+  freteStore.opcoes?.motoristas?.find((m) => m.id === id)?.nome ||
+  (id ? `Motorista #${id}` : 'Não atribuído');
+
+// Filtro aplicado aos fretes encomendados
+const fretesFiltrados = computed(() => {
+  return meusFretes.value.filter((frete) => {
+    const descricaoCarga = obterDescricaoCarga(frete.carga).toLowerCase();
+    
+    if (buscaCarga.value && !descricaoCarga.includes(buscaCarga.value.toLowerCase())) {
+      return false;
+    }
+    if (filtroPrecoMax.value && parseFloat(frete.valor_frete || 0) > parseFloat(filtroPrecoMax.value)) {
+      return false;
+    }
+    if (filtroData.value && frete.data_criacao) {
+      const dataFrete = frete.data_criacao.split('T')[0];
+      if (dataFrete !== filtroData.value) return false;
+    }
+    return true;
+  });
 });
 
-const meusFretes = computed(() => freteStore.listaFretes || []);
+const getStatusClass = (s) =>
+  `status-${s?.toLowerCase().replace(/\s+/g, "-") || "default"}`;
 
-// FUNÇÃO AUXILIAR: Protegida contra problemas de tipo
-const getNomeCarga = (idCarga) => {
-  if (!listaCargasUser.value || !Array.isArray(listaCargasUser.value)) {
-    return `Carga #${idCarga}`;
-  }
-  const cargaEncontrada = listaCargasUser.value.find(c => c.id === idCarga);
-  return cargaEncontrada ? cargaEncontrada.descricao : `Carga #${idCarga}`;
+const abrirCarga = async (id) => {
+  await freteStore.buscarDetalheCarga(id);
+  mostrarModalCarga.value = true;
 };
 
-const abrirDetalhesCarga = async (idCarga) => {
-  if (!idCarga) return;
-  try {
-    await freteStore.buscarDetalheCarga(idCarga);
-    mostrarModalCarga.value = true;
-  } catch (error) {
-    console.error("Erro ao buscar detalhes da carga:", error);
-  }
+const abrirMotorista = async (id) => {
+  if (!id) return;
+  await freteStore.buscarDetalheMotorista(id);
+  mostrarModalMotorista.value = true;
 };
+
+function fazerLogout() {
+  localStorage.removeItem('access_token');
+  localStorage.removeItem('refresh_token');
+  localStorage.clear();
+  router.push('/');
+}
 </script>
 
 <template>
-  <div class="hub-container">
-    <header class="hub-header">
+  <div class="usuario-container">
+    <!-- Botão de Sair isolado no canto superior direito absoluto da página -->
+    <div class="logout-top-corner">
+      <DarkButton label="Sair" @click="fazerLogout" />
+    </div>
+
+    <header class="usuario-header">
       <div>
-        <h1>Meu Painel de Entregas</h1>
-        <p>Acompanhe e gerencie as suas solicitações de frete e cargas cadastradas.</p>
+        <h1>Meu Painel de Encomendas</h1>
+        <p>Acompanhe e gerencie as suas solicitações de frete.</p>
       </div>
-      <div class="hub-actions">
-        <button class="btn-primary" @click="router.push('/cargas/novo')">
-          + Cadastrar Carga
-        </button>
-        <button class="btn-secondary" @click="router.push('/fretes/novo')">
-          + Solicitar Frete
-        </button>
+      <div class="header-btns">
+        <LightButton label="Área do Motorista" @click="router.push('/motorista-hub')" />
+        <DarkButton label="Solicitar Frete" @click="mostrarModalFreteCompleto = true" />
       </div>
     </header>
 
-    <div class="hub-grid">
-      <section class="hub-card">
-        <h2>Minhas Cargas Cadastradas</h2>
-        <div v-if="loadingCargas" class="mini-loader">Carregando cargas...</div>
-        <div v-else-if="listaCargasUser.length === 0" class="empty-state">
-          Você ainda não cadastrou nenhuma carga.
-        </div>
-        <ul v-else class="item-list">
-          <li 
-            v-for="carga in listaCargasUser" 
-            :key="carga.id" 
-            class="item-row clickable-row"
-            @click="abrirDetalhesCarga(carga.id)"
-          >
-            <div>
-              <span class="badge-id">#{{ carga.id }}</span>
-              <strong>{{ carga.descricao }}</strong>
-            </div>
-            <span class="text-muted">{{ carga.peso }} {{ carga.unidade }}</span>
-          </li>
-        </ul>
-      </section>
+    <!-- Barra de Filtros Unificada com o design do Admin -->
+    <BarraFiltrosFretes
+      v-model:buscaCarga="buscaCarga"
+      v-model:filtroPrecoMax="filtroPrecoMax"
+      v-model:filtroData="filtroData"
+      :isAdmin="false"
+      @limpar="
+        buscaCarga = '';
+        filtroPrecoMax = '';
+        filtroData = '';
+      "
+    />
 
-      <section class="hub-card">
-        <h2>Meus Fretes Solicitados</h2>
-        <div v-if="freteStore.loading" class="mini-loader">Carregando fretes...</div>
-        <div v-else-if="meusFretes.length === 0" class="empty-state">
-          Nenhum pedido de frete em andamento.
-        </div>
-        <ul v-else class="item-list">
-          <li v-for="frete in meusFretes" :key="frete.id" class="item-row">
-            <div>
-              <span class="badge-id">#{{ frete.id }}</span>
-              <span>Carga: 
-                <strong class="carga-link" @click="abrirDetalhesCarga(frete.carga)">
-                  {{ getNomeCarga(frete.carga) }}
-                </strong>
-              </span>
-            </div>
-            <span class="status-indicator">{{ frete.status }}</span>
-          </li>
-        </ul>
-      </section>
-    </div>
-
-    <div v-if="mostrarModalCarga" class="modal-overlay" @click.self="mostrarModalCarga = false">
-      <div class="modal-content">
-        <h3>Detalhes da Carga #{{ freteStore.detalheCarga?.id }}</h3>
-        <hr />
-        
-        <div v-if="freteStore.detalheCarga" class="details-grid">
-          <p><strong>Descrição:</strong> {{ freteStore.detalheCarga.descricao }}</p>
-          <p><strong>Peso:</strong> {{ freteStore.detalheCarga.peso }} {{ freteStore.detalheCarga.unidade || 'kg' }}</p>
-          <p><strong>Valor:</strong> {{ freteStore.detalheCarga.valor }} {{ freteStore.detalheCarga.movera || 'Reais' }}</p>
-        </div>
-
-        <div v-if="freteStore.detalheCarga" class="foto-produto-container">
-          <label class="foto-label"><strong>Foto do Produto:</strong></label>
-          <img 
-            v-if="freteStore.detalheCarga.foto_url" 
-            :src="freteStore.detalheCarga.foto_url.startsWith('http') 
-                  ? freteStore.detalheCarga.foto_url 
-                  : 'http://localhost:8000' + freteStore.detalheCarga.foto_url" 
-            alt="Foto da Carga" 
-            class="foto-detalhe"
-          />
-          <div v-else class="sem-foto-placeholder">
-            <span>Nenhuma foto cadastrada</span>
-          </div>
-        </div>
-
-        <button class="close-btn" @click="mostrarModalCarga = false">Fechar</button>
+    <!-- Secção de Fretes Encomendados -->
+    <div class="section-container">
+      <h2>Meus Fretes Encomendados</h2>
+      <div v-if="freteStore.loading" class="loader-container">
+        <div class="loader"></div>
+      </div>
+      <div v-else-if="!fretesFiltrados.length" class="empty-results">Nenhum pedido de frete encontrado.</div>
+      <div v-else class="table-wrapper">
+        <table class="fretes-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Carga</th>
+              <th>Motorista</th>
+              <th>Valor</th>
+              <th>Status</th>
+              <th>Data</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="f in fretesFiltrados" :key="f.id">
+              <td>#{{ f.id }}</td>
+              <td class="clickable" @click="abrirCarga(f.carga)">
+                {{ obterDescricaoCarga(f.carga) }}
+              </td>
+              <td class="clickable" @click="abrirMotorista(f.motorista)">
+                {{ obterNomeMotorista(f.motorista) }}
+              </td>
+              <td>{{ f.valor_frete }} {{ f.moeda || 'Reais' }}</td>
+              <td>
+                <span :class="['status-badge', getStatusClass(f.status)]">
+                  {{ f.status }}
+                </span>
+              </td>
+              <td>{{ f.data_criacao ? new Date(f.data_criacao).toLocaleDateString('pt-BR') : '-' }}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
+
+    <!-- Modais -->
+    <ModalDetalhesCarga
+      v-if="mostrarModalCarga"
+      :isOpen="mostrarModalCarga"
+      :carga="freteStore.detalheCarga"
+      @close="mostrarModalCarga = false"
+    />
+    <ModalDetalhesMotorista
+      v-if="mostrarModalMotorista"
+      :isOpen="mostrarModalMotorista"
+      :motorista="freteStore.detalheMotorista"
+      @close="mostrarModalMotorista = false"
+    />
+    <ModalCriarFreteCompleto
+      v-if="mostrarModalFreteCompleto"
+      :isOpen="mostrarModalFreteCompleto"
+      @close="() => { mostrarModalFreteCompleto = false; carregarDadosUsuario(); }"
+    />
   </div>
 </template>
 
 <style scoped>
-/* Layout Global e Container */
-.hub-container {
-  padding: 30px;
-  max-width: 1200px;
-  margin: 0 auto;
+.usuario-container {
+  padding: 40px;
+  background: #f2f2f2;
+  min-height: 100vh;
   font-family: sans-serif;
+  max-width: 1400px;
+  margin: 0 auto;
+  position: relative; /* Mantém o posicionamento absoluto relativo a esta view */
 }
 
-/* Flexbox Compartilhado (Headers e Linhas) */
-.hub-header, .item-row {
+.logout-top-corner {
+  position: absolute;
+  top: 20px;
+  right: 40px;
+}
+
+.logout-top-corner :deep(button) {
+  padding: 5px 12px;
+  font-size: 0.75rem;
+  border-radius: 6px;
+}
+
+.usuario-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-top: 20px; /* Garante que o header desça um pouco para não bater no botão de sair */
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+  gap: 20px;
 }
-.hub-header {
-  border-bottom: 2px solid #eee;
-  padding-bottom: 20px;
-  margin-bottom: 30px;
-}
-.hub-actions {
-  display: flex;
-  gap: 12px;
-}
-
-/* Botões */
-.btn-primary, .btn-secondary {
-  padding: 10px 18px;
-  border-radius: 6px;
-  border: none;
-  font-weight: bold;
-  cursor: pointer;
-}
-.btn-primary { background-color: #4caf50; color: white; }
-.btn-secondary { background-color: #2196f3; color: white; }
-
-/* Grid e Responsividade */
-.hub-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 25px;
-}
-@media (max-width: 768px) {
-  .hub-grid { grid-template-columns: 1fr; }
-}
-
-/* Cards e Listas */
-.hub-card {
-  background: #fff;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-}
-.hub-card h2 {
-  font-size: 1.3rem;
-  margin: 0 0 20px 0;
-  color: #333;
-  border-left: 4px solid #2196f3;
-  padding-left: 8px;
-}
-.item-list {
-  list-style: none;
-  padding: 0;
+.usuario-header h1 {
   margin: 0;
+  font-size: 2rem;
+  font-weight: 800;
+  text-transform: uppercase;
 }
-.item-row {
-  padding: 12px 10px;
-  border-bottom: 1px solid #f0f0f0;
-}
-.item-row:last-child { border-bottom: none; }
-
-/* Interações e Links */
-.clickable-row {
-  cursor: pointer;
-  transition: background 0.2s ease;
-}
-.clickable-row:hover { background-color: #f9f9f9; }
-.carga-link {
-  color: #2196f3;
-  cursor: pointer;
-}
-.carga-link:hover { text-decoration: underline; }
-
-/* Elementos de Texto e Badges */
-.badge-id {
-  background: #eee;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 0.8rem;
-  margin-right: 8px;
+.usuario-header p {
+  margin-top: 6px;
   color: #666;
 }
-.empty-state, .mini-loader { text-align: center; color: #888; }
-.empty-state { padding: 30px 0; font-style: italic; }
-.mini-loader { color: #666; }
-.text-muted { color: #777; font-size: 0.9rem; }
-.status-indicator {
-  background-color: #e3f2fd;
-  color: #0d47a1;
-  padding: 4px 8px;
-  border-radius: 20px;
-  font-size: 0.85rem;
-  font-weight: bold;
+.header-btns {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
 }
-
-/* Modais */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.5);
+.header-btns :deep(button) {
+  width: auto;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  border-radius: 8px;
+}
+.section-container {
+  margin-bottom: 35px;
+}
+.section-container h2 {
+  font-size: 1.1rem;
+  margin-bottom: 16px;
+  color: #111;
+  border-left: 4px solid #111;
+  padding-left: 8px;
+  text-transform: uppercase;
+}
+.table-wrapper {
+  background: #fff;
+  border-radius: 16px;
+  overflow-x: auto;
+  border: 1px solid #e0e0e0;
+}
+.fretes-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.fretes-table th {
+  padding: 16px;
+  background: #141414;
+  color: #fff;
+  text-align: left;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+}
+.fretes-table td {
+  padding: 16px;
+  border-bottom: 1px solid #eee;
+  font-size: 0.9rem;
+}
+.clickable {
+  text-decoration: underline;
+  cursor: pointer;
+  font-weight: 600;
+}
+.status-badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: #e3f2fd;
+  color: #0d47a1;
+}
+.empty-results {
+  text-align: center;
+  padding: 32px;
+  background: #fff;
+  border-radius: 14px;
+  color: #6b6b6b;
+}
+.loader-container {
   display: flex;
   justify-content: center;
-  align-items: center;
-  z-index: 999;
+  padding: 30px;
+  color: #666;
 }
-.modal-content {
-  background: white;
-  padding: 25px;
-  border-radius: 8px;
-  width: 90%;
-  max-width: 500px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+.loader {
+  width: 36px;
+  height: 36px;
+  border: 4px solid #e5e5e5;
+  border-top: 4px solid #141414;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
 }
-.details-grid p { margin: 10px 0; font-size: 1rem; }
-.foto-produto-container { margin-top: 15px; }
-.foto-label { display: block; margin-bottom: 5px; }
-.foto-detalhe {
-  max-width: 100%;
-  max-height: 220px;
-  border-radius: 4px;
-  object-fit: contain;
-  display: block;
-  margin: 0 auto;
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
-.sem-foto-placeholder {
-  background: #f5f5f5;
-  padding: 20px;
-  text-align: center;
-  color: #999;
-  border-radius: 4px;
-  font-style: italic;
-}
-.close-btn {
-  margin-top: 20px;
-  width: 100%;
-  padding: 10px;
-  background: #333;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: bold;
-}
-.close-btn:hover { background: #444; }
 </style>
