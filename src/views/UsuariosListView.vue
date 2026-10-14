@@ -32,7 +32,6 @@ const getNivelClass = (u) =>
         <h1>Administração de Usuários</h1>
         <p>Gerencie usuários e permissões do sistema.</p>
       </div>
-      <button class="btn-voltar" @click="router.back()">Voltar</button>
     </header>
     <div v-if="carregando" class="loader-container">
       <div class="loader"></div>

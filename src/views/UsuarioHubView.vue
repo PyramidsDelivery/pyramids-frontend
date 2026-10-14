@@ -42,14 +42,20 @@ onMounted(carregarDadosUsuario);
 
 const meusFretes = computed(() => freteStore.fretesCliente || []);
 
-const obterDescricaoCarga = (id) => {
-  const carga = listaCargasUser.value?.find(c => c.id === id);
-  return carga ? carga.descricao : `Carga #${id}`;
+const obterDescricaoCarga = (cargaObjOrId) => {
+  const id = typeof cargaObjOrId === 'object' ? cargaObjOrId?.id : cargaObjOrId;
+  const carga = listaCargasUser.value?.find(c => c.id === id || c.id === Number(id));
+  return carga ? carga.descricao : (typeof cargaObjOrId === 'object' ? cargaObjOrId?.descricao : `Carga #${id || 'N/D'}`);
 };
 
-const obterNomeMotorista = (id) =>
-  freteStore.opcoes?.motoristas?.find((m) => m.id === id)?.nome ||
-  (id ? `Motorista #${id}` : 'Não atribuído');
+const obterNomeMotorista = (motoristaObjOrId) => {
+  if (typeof motoristaObjOrId === 'string' && isNaN(Number(motoristaObjOrId))) {
+    return motoristaObjOrId;
+  }
+  const id = typeof motoristaObjOrId === 'object' ? motoristaObjOrId?.id : motoristaObjOrId;
+  const mot = freteStore.opcoes?.motoristas?.find((m) => m.id === id || m.id === Number(id) || m.nome === motoristaObjOrId);
+  return mot?.nome || (typeof motoristaObjOrId === 'object' ? motoristaObjOrId?.nome : (id ? `Motorista #${id}` : 'Não atribuído'));
+};
 
 // Filtro aplicado aos fretes encomendados
 const fretesFiltrados = computed(() => {
@@ -73,15 +79,62 @@ const fretesFiltrados = computed(() => {
 const getStatusClass = (s) =>
   `status-${s?.toLowerCase().replace(/\s+/g, "-") || "default"}`;
 
-const abrirCarga = async (id) => {
-  await freteStore.buscarDetalheCarga(id);
+const abrirCarga = async (cargaObjOrId) => {
   mostrarModalCarga.value = true;
+
+  // 1. Se já for um objeto completo com dados, usa diretamente
+  if (typeof cargaObjOrId === 'object' && cargaObjOrId !== null) {
+    freteStore.detalheCarga = cargaObjOrId;
+    return;
+  }
+
+  // 2. Procura nas cargas que já temos carregadas
+  const id = typeof cargaObjOrId === 'object' ? cargaObjOrId?.id : cargaObjOrId;
+  const cargaLocal = listaCargasUser.value?.find(c => c.id === id || c.id === Number(id));
+  if (cargaLocal) {
+    freteStore.detalheCarga = cargaLocal;
+  }
+
+  // 3. Tenta buscar detalhes atualizados na API se houver ID numérico
+  if (id && !isNaN(Number(id))) {
+    try {
+      await freteStore.buscarDetalheCarga(id);
+    } catch (err) {
+      console.error("Erro ao buscar detalhes da carga na API:", err);
+    }
+  }
 };
 
-const abrirMotorista = async (id) => {
-  if (!id) return;
-  await freteStore.buscarDetalheMotorista(id);
+const abrirMotorista = async (motoristaObjOrId) => {
   mostrarModalMotorista.value = true;
+
+  // 1. Se já for um objeto completo com dados
+  if (typeof motoristaObjOrId === 'object' && motoristaObjOrId !== null) {
+    freteStore.detalheMotorista = motoristaObjOrId;
+    return;
+  }
+
+  // 2. Procura nas opções de motoristas locais (por id ou nome, como "coco")
+  const motoristaLocal = freteStore.opcoes?.motoristas?.find(
+    m => m.id === motoristaObjOrId || m.nome === motoristaObjOrId || m.id === Number(motoristaObjOrId)
+  );
+
+  if (motoristaLocal) {
+    freteStore.detalheMotorista = motoristaLocal;
+  } else if (typeof motoristaObjOrId === 'string') {
+    // Se só tivermos a string (ex: "coco"), constrói um objeto fallback para não ficar em branco
+    freteStore.detalheMotorista = { nome: motoristaObjOrId };
+  }
+
+  // 3. Se houver um ID numérico, consulta o endpoint da API
+  const id = motoristaLocal?.id || (typeof motoristaObjOrId === 'object' ? motoristaObjOrId?.id : motoristaObjOrId);
+  if (id && !isNaN(Number(id))) {
+    try {
+      await freteStore.buscarDetalheMotorista(id);
+    } catch (err) {
+      console.error("Erro ao buscar detalhes do motorista na API:", err);
+    }
+  }
 };
 
 function fazerLogout() {
@@ -212,6 +265,7 @@ function fazerLogout() {
   display: flex;
   justify-content: space-between;
   align-items: center;
+
   margin-top: 20px; /* Garante que o header desça um pouco para não bater no botão de sair */
   margin-bottom: 28px;
   flex-wrap: wrap;
