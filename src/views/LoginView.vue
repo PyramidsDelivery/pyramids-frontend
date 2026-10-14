@@ -1,8 +1,7 @@
 <script setup>
-import { ref } from 'vue' 
+import { ref, onMounted, onUnmounted } from 'vue' 
 import { useRouter } from 'vue-router'
 import { useDataStore } from '../stores/useDataStore'
-import logo from '../assets/logo.png'
 import LightButton from '../components/LightButton.vue'
 import DarkButton from '../components/DarkButton.vue'
 import BaseInput from '../components/BaseInput.vue'
@@ -12,6 +11,100 @@ const store = useDataStore()
 
 const email = ref('')
 const senha = ref('')
+
+// Referências para o Canvas 3D
+const pyramidCanvasDesktop = ref(null)
+const pyramidCanvasMobile = ref(null)
+
+let animationFrameId = null
+
+// Função para desenhar e animar a pirâmide 3D no Canvas
+function initPyramidCanvas(canvas) {
+  if (!canvas) return
+  const ctx = canvas.getContext('2d')
+  
+  let angleY = 0
+  const angleX = -0.28 
+
+  const baseSize = 65
+  const height = 160
+
+  const vertices = [
+    { x: -baseSize, y: height / 2, z: -baseSize }, 
+    { x: baseSize, y: height / 2, z: -baseSize },  
+    { x: baseSize, y: height / 2, z: baseSize },   
+    { x: -baseSize, y: height / 2, z: baseSize },  
+    { x: 0, y: -height / 2, z: 0 }                  
+  ]
+
+  const baseEdges = [[0, 1], [1, 2], [2, 3], [3, 0]]
+  const sideEdges = [[0, 4], [1, 4], [2, 4], [3, 4]]
+
+  function project(p) {
+    let x = p.x * Math.cos(angleY) - p.z * Math.sin(angleY)
+    let z = p.x * Math.sin(angleY) + p.z * Math.cos(angleY)
+    let y = p.y
+
+    let yRot = y * Math.cos(angleX) - z * Math.sin(angleX)
+    let zRot = y * Math.sin(angleX) + z * Math.cos(angleX)
+
+    const fov = 320
+    const scale = fov / (fov + zRot + 120)
+
+    return {
+      x: canvas.width / 2 + x * scale,
+      y: canvas.height / 2 + yRot * scale
+    }
+  }
+
+  function render() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    angleY += 0.012
+
+    const projected = vertices.map(project)
+
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.03)'
+    ctx.beginPath()
+    ctx.moveTo(projected[0].x, projected[0].y)
+    ctx.lineTo(projected[1].x, projected[1].y)
+    ctx.lineTo(projected[4].x, projected[4].y)
+    ctx.closePath()
+    ctx.fill()
+
+    ctx.setLineDash([])
+    ctx.lineWidth = 2.8
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)'
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
+
+    baseEdges.forEach(([i, j]) => {
+      ctx.beginPath()
+      ctx.moveTo(projected[i].x, projected[i].y)
+      ctx.lineTo(projected[j].x, projected[j].y)
+      ctx.stroke()
+    })
+
+    sideEdges.forEach(([i, j]) => {
+      ctx.beginPath()
+      ctx.moveTo(projected[i].x, projected[i].y)
+      ctx.lineTo(projected[j].x, projected[j].y)
+      ctx.stroke()
+    })
+
+    animationFrameId = requestAnimationFrame(render)
+  }
+
+  render()
+}
+
+onMounted(() => {
+  if (pyramidCanvasDesktop.value) initPyramidCanvas(pyramidCanvasDesktop.value)
+  if (pyramidCanvasMobile.value) initPyramidCanvas(pyramidCanvasMobile.value)
+})
+
+onUnmounted(() => {
+  if (animationFrameId) cancelAnimationFrame(animationFrameId)
+})
 
 async function realizarLogin() {
   const sucesso = await store.login(email.value, senha.value)
@@ -30,20 +123,21 @@ function irParaCadastro() {
   router.push('/cadastro')
 }
 </script>
+
 <template>
   <div class="container">
     <div class="left">
-      <!-- LOGO -->
-
-
       <div class="left-content">
-        <img :src="logo" alt="Logo" />
+        <!-- Pirâmide bem maior e posicionada mais acima -->
+        <div class="pyramid-container">
+          <canvas ref="pyramidCanvasDesktop" width="600" height="600" class="canvas-piramide"></canvas>
+        </div>
+
         <div class="left-text">
           <h1>Não tem uma conta?</h1>
           <p>Cadastre-se.</p>
         </div>
 
-        <!-- TROCA AQUI -->
         <LightButton label="Cadastro" @click="irParaCadastro" />
       </div>
     </div>
@@ -57,7 +151,6 @@ function irParaCadastro() {
         </div>
 
         <div class="inputs">
-         
           <BaseInput v-model="email" type="email" placeholder="Email" />
           <BaseInput v-model="senha" type="password" placeholder="Senha" />
         </div>
@@ -66,9 +159,12 @@ function irParaCadastro() {
       </div>
     </div>
   </div>
+
   <div class="mobile">
     <div class="top">
-      <img :src="logo" alt="Logo" />
+      <div class="pyramid-container">
+        <canvas ref="pyramidCanvasMobile" width="500" height="500" class="canvas-piramide"></canvas>
+      </div>
     </div>
 
     <div class="mobile-content">
@@ -104,8 +200,17 @@ function irParaCadastro() {
   width: 100%;
 }
 
-.logo {
-  width: 150px;
+.pyramid-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: -45px; /* Desloca significativamente para cima */
+}
+
+/* Tamanho de exibição aumentado para 340px com alta definição interna */
+.canvas-piramide {
+  width: 340px;
+  height: 340px;
 }
 
 .container .left {
@@ -121,12 +226,12 @@ function irParaCadastro() {
 .left h1 {
   margin: 0;
   font-weight: bold;
-  line-height: 3rem;
-  font-size: 3rem;
+  line-height: 2.6rem;
+  font-size: 2.4rem;
 }
 
 .left p {
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   color: var(--color-light);
 }
 
@@ -134,19 +239,20 @@ function irParaCadastro() {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  gap: 25px;
   height: 100%;
-  padding: 100px 0;
-  width: 50%;
-
-
+  padding: 30px 20px;
+  width: 75%;
+  max-width: 480px;
 }
 
 .left-content .left-text {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-
+  align-items: center;
+  gap: 8px;
+  text-align: center;
 }
 
 .container .right {
@@ -195,7 +301,6 @@ function irParaCadastro() {
   width: 100%;
 }
 
-
 @media (min-width: 1440px) {
   .container {
     max-width: 2000px;
@@ -204,7 +309,7 @@ function irParaCadastro() {
 
   .left-content,
   .right-content {
-    padding: 200px 0;
+    padding: 140px 0;
     max-width: 700px;
   }
 
@@ -267,10 +372,8 @@ function irParaCadastro() {
 }
 
 @media (max-width: 768px) {
-
   .container {
     display: none;
-    /* esconde desktop */
   }
 
   .mobile {
@@ -306,27 +409,25 @@ function irParaCadastro() {
     justify-content: center;
   }
 
-  .top img {
-    width: 120px;
-  }
-
   .mobile-content {
     flex: 1;
-    padding: 60px 20px;
+    padding: 45px 20px;
     display: flex;
     flex-direction: column;
-    gap: 50px;
-
+    gap: 45px;
   }
-.mobile .right-text {
+
+  .mobile .right-text {
     margin-bottom: 10px;
   }
+
   .mobile .inputs {
     display: flex;
     flex-direction: column;
     gap: 25px;
   }
- .mobile input {
+
+  .mobile input {
     background: #dcdcdc;
     border: 2px solid var(--color-input-bg);
     border-radius: 20px;
@@ -334,13 +435,12 @@ function irParaCadastro() {
     width: 100%;
   } 
 
-.mobile input:focus {
-  border-color: var(--color-dark);
-  outline: none;
-  color: var(--color-dark);
-}
+  .mobile input:focus {
+    border-color: var(--color-dark);
+    outline: none;
+    color: var(--color-dark);
+  }
 
-  /* joga o link pro final */
   .mobile-link {
     margin-top: auto;
     text-align: center;

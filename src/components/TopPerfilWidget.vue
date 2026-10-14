@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, onUnmounted, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import api from '../services/api';
 
@@ -7,6 +7,28 @@ const router = useRouter();
 const route = useRoute();
 const user = ref({ foto: null, username: '', is_superuser: false, is_staff: false });
 const visivel = ref(false);
+
+// Estado para controlar a ocultação suave no scroll
+const escondido = ref(false);
+let lastScrollY = 0;
+const scrollThreshold = 20; // Mínimo de pixels rolando para acionar
+
+const handleScroll = () => {
+  const currentScrollY = window.scrollY;
+  const diff = currentScrollY - lastScrollY;
+
+  // Só aplica alteração se rolar mais do que o limite de tolerância
+  if (Math.abs(diff) > scrollThreshold) {
+    if (diff > 0 && currentScrollY > 60) {
+      // Roolando para baixo: esconde
+      escondido.value = true;
+    } else {
+      // Roolando para cima: mostra
+      escondido.value = false;
+    }
+    lastScrollY = currentScrollY;
+  }
+};
 
 const carregarUsuario = async () => {
   const token = localStorage.getItem('token');
@@ -25,7 +47,15 @@ const carregarUsuario = async () => {
   }
 };
 
-onMounted(carregarUsuario);
+onMounted(() => {
+  carregarUsuario();
+  window.addEventListener('scroll', handleScroll, { passive: true });
+});
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll);
+});
+
 watch(() => route.path, carregarUsuario);
 
 const irParaPerfil = () => {
@@ -38,35 +68,21 @@ const voltarPagina = () => {
   const isSuperStorage = localStorage.getItem('is_superuser') === 'true';
   const isAdmin = user.value.is_superuser || user.value.is_staff || isStaffStorage || isSuperStorage || route.meta.requiresAdmin;
 
-  // --- FLUXO DO ADMINISTRADOR ---
   if (isAdmin) {
-    // Se está no Perfil, volta para o Hub do Admin (/hubadmin)
-    if (caminho === '/perfil') {
+    if (caminho === '/perfil' || caminho === '/fretesadm' || caminho === '/usuarioslist') {
       router.push({ name: 'hubadmin' });
       return;
     }
-    
-    // Se está nas páginas secundárias de admin (/fretesadm ou /usuarioslist), volta para o Hub do Admin
-    if (caminho === '/fretesadm' || caminho === '/usuarioslist') {
-      router.push({ name: 'hubadmin' });
-      return;
-    }
-
-    // Se já está no Hub do Admin, voltar faz logout e vai para a tela de Login
     if (caminho === '/hubadmin') {
       localStorage.clear();
       router.push({ name: 'login' });
       return;
     }
-
-    // Caso padrão para qualquer outra rota de admin
     router.push({ name: 'hubadmin' });
     return;
   }
 
-  // --- FLUXO DO USUÁRIO NORMAL / MOTORISTA ---
   if (caminho === '/perfil') {
-    // Se veio do perfil, volta para o hub correspondente
     if (localStorage.getItem('user_type') === 'motorista') {
       router.push({ name: 'motorista-hub' });
     } else {
@@ -75,26 +91,27 @@ const voltarPagina = () => {
     return;
   }
 
-  // Se está em formulários de criação, volta para o hub do usuário
   if (caminho === '/fretes/novo' || caminho === '/cargas/novo') {
     router.push({ name: 'usuario-hub' });
     return;
   }
 
-  // Se já está no Hub de Usuário ou Hub de Motorista, voltar desloga e vai para o Login
   if (caminho === '/usuario-hub' || caminho === '/motorista-hub') {
     localStorage.clear();
     router.push({ name: 'login' });
     return;
   }
 
-  // Fallback seguro
   router.push({ name: 'usuario-hub' });
 };
 </script>
 
 <template>
-  <div v-if="visivel" class="top-widget-container">
+  <div 
+    v-if="visivel" 
+    class="top-widget-container" 
+    :class="{ 'widget-hidden': escondido }"
+  >
     <!-- Botão de Voltar Nativo Miniatura -->
     <button class="btn-voltar-tiny" @click="voltarPagina">Voltar</button>
 
@@ -118,6 +135,14 @@ const voltarPagina = () => {
   display: flex;
   align-items: center;
   gap: 8px;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
+}
+
+/* Estado oculto quando rola para baixo */
+.top-widget-container.widget-hidden {
+  transform: translateY(-50px);
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* Botão de voltar miniatura */

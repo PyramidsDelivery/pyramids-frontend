@@ -147,11 +147,6 @@ function fazerLogout() {
 
 <template>
   <div class="usuario-container">
-    <!-- Botão de Sair isolado no canto superior direito absoluto da página -->
-    <div class="logout-top-corner">
-      <DarkButton label="Sair" @click="fazerLogout" />
-    </div>
-
     <header class="usuario-header">
       <div>
         <h1>Meu Painel de Encomendas</h1>

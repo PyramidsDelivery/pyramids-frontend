@@ -131,6 +131,33 @@ export const useFreteStore = defineStore('frete', {
         console.error("Erro ao atualizar frete:", err.response?.data || err);
         return false;
       }
+    },
+
+    async buscarDetalheCarga(id) {
+      try {
+        const response = await api.get(`cargas/${id}/`);
+        this.detalheCarga = response.data;
+        return response.data;
+      } catch (err) {
+        console.warn("Detalhe da carga não acessível diretamente, usando fallback:", err);
+        this.detalheCarga = {
+          id: id,
+          descricao: `Carga #${id}`,
+          observacoes: 'Detalhes restritos ou indisponíveis para este perfil.'
+        };
+        return this.detalheCarga;
+      }
+    },
+
+    async buscarDetalheMotorista(id) {
+      try {
+        const response = await api.get(`motoristas/${id}/`);
+        this.detalheMotorista = response.data;
+        return response.data;
+      } catch (err) {
+        console.error("Erro ao buscar detalhe do motorista:", err);
+        throw err;
+      }
     }
   }
 });
