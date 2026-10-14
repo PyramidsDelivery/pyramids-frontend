@@ -1,19 +1,34 @@
 <script setup>
-import {useRouter} from 'vue-router' 
+import { useRouter } from 'vue-router';
 import LightButton from '../components/LightButton.vue';
+import DarkButton from '../components/DarkButton.vue';
 
-const router = useRouter()
+const router = useRouter();
 
 function verFretes() {
-    router.push('/fretesadm')
+    router.push('/fretesadm');
 }
 function verUsuarios() {
-    router.push('/usuarioslist')
+    router.push('/usuarioslist');
+}
+
+function fazerLogout() {
+    // Remove o token ou dados de autenticação armazenados
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.clear();
+    // Redireciona para a página de login (ajusta a rota 'login' se necessário)
+    router.push('/');
 }
 </script>
 
 <template>
   <div class="hub-container">
+    <!-- Botão de logout discreto no canto superior direito -->
+    <div class="logout-wrapper">
+      <DarkButton label="Sair" @click="fazerLogout" />
+    </div>
+
     <div class="hub-header">
       <h1>Painel de Controle</h1>
       <p>Selecione uma seção para continuar</p>
@@ -46,6 +61,19 @@ function verUsuarios() {
   padding: 2rem;
   background: #f2f2f2;
   font-family: 'Segoe UI', system-ui, sans-serif;
+  position: relative; /* Necessário para posicionar o botão absoluto dentro dele */
+}
+
+.logout-wrapper {
+  position: absolute;
+  top: 25px;
+  right: 25px;
+}
+
+.logout-wrapper :deep(button) {
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  border-radius: 6px;
 }
 
 .hub-header {

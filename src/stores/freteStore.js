@@ -76,7 +76,7 @@ export const useFreteStore = defineStore('frete', {
       }
     },
 
-async criarFrete(dadosFrete) {
+    async criarFrete(dadosFrete) {
       try {
         if (!dadosFrete) {
           throw new Error("Dados do frete não fornecidos.");
@@ -97,7 +97,6 @@ async criarFrete(dadosFrete) {
 
         const response = await api.post('fretes/', payloadFormatado);
         
-        // Atualiza a lista dependendo do contexto atual
         await this.carregarFretes('cliente'); 
         return { success: true, data: response.data };
       } catch (err) {

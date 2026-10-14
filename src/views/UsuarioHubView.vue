@@ -136,10 +136,22 @@ const abrirMotorista = async (motoristaObjOrId) => {
     }
   }
 };
+
+function fazerLogout() {
+  localStorage.removeItem('access_token');
+  localStorage.removeItem('refresh_token');
+  localStorage.clear();
+  router.push('/');
+}
 </script>
 
 <template>
   <div class="usuario-container">
+    <!-- Botão de Sair isolado no canto superior direito absoluto da página -->
+    <div class="logout-top-corner">
+      <DarkButton label="Sair" @click="fazerLogout" />
+    </div>
+
     <header class="usuario-header">
       <div>
         <h1>Meu Painel de Encomendas</h1>
@@ -232,16 +244,29 @@ const abrirMotorista = async (motoristaObjOrId) => {
   background: #f2f2f2;
   min-height: 100vh;
   font-family: sans-serif;
-  width: 100%;
-  box-sizing: border-box;
-  position: relative;
+  max-width: 1400px;
+  margin: 0 auto;
+  position: relative; /* Mantém o posicionamento absoluto relativo a esta view */
+}
+
+.logout-top-corner {
+  position: absolute;
+  top: 20px;
+  right: 40px;
+}
+
+.logout-top-corner :deep(button) {
+  padding: 5px 12px;
+  font-size: 0.75rem;
+  border-radius: 6px;
 }
 
 .usuario-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 15px;
+
+  margin-top: 20px; /* Garante que o header desça um pouco para não bater no botão de sair */
   margin-bottom: 28px;
   flex-wrap: wrap;
   gap: 20px;

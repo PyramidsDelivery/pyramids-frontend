@@ -138,8 +138,10 @@ const excluirFrete = async (id) => {
         <p>Gerencie cargas e acompanhe os status em tempo real.</p>
       </div>
       <div class="header-btns">
+
         <DarkButton label="Criar Novo Frete (Completo)" @click="mostrarModalFreteCompleto = true" />
-      
+     
+    
       </div>
     </header>
 
