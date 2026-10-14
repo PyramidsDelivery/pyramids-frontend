@@ -9,6 +9,8 @@ import UsuarioHubView from '../views/UsuarioHubView.vue'
 import CriarFreteView from '../views/CriarFreteView.vue'
 import CriarCargaView from '../views/CriarCargaView.vue'
 import MotoristaHubView from '../views/MotoristaHubView.vue'
+import PerfilView from '../views/PerfilView.vue'
+
 const routes = [
   {
     path: '/',
@@ -24,6 +26,12 @@ const routes = [
     path: '/usuario-hub',
     name: 'usuario-hub',
     component: UsuarioHubView,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/perfil',
+    name: 'perfil',
+    component: PerfilView,
     meta: { requiresAuth: true }
   },
   {
@@ -45,22 +53,23 @@ const routes = [
     meta: { requiresAdmin: true }
   },
   {
-  path: '/fretes/novo',
-  name: 'criar-frete',
-  component: CriarFreteView,
-  meta: { requiresAdmin: false }
- },
- {
-  path: '/cargas/novo',
-  name: 'criar-carga',
-  component: CriarCargaView,
-  meta: { requiresAdmin: false }
- },
- {
-  path: '/motorista-hub',
-  name: 'motorista-hub',
-  component: MotoristaHubView
-},
+    path: '/fretes/novo',
+    name: 'criar-frete',
+    component: CriarFreteView,
+    meta: { requiresAdmin: false }
+  },
+  {
+    path: '/cargas/novo',
+    name: 'criar-carga',
+    component: CriarCargaView,
+    meta: { requiresAdmin: false }
+  },
+  {
+    path: '/motorista-hub',
+    name: 'motorista-hub',
+    component: MotoristaHubView,
+    meta: { requiresAuth: true }
+  }
 ]
 
 const router = createRouter({
@@ -74,22 +83,20 @@ router.beforeEach((to, from, next) => {
   const isStaff = store.isStaff || localStorage.getItem('is_staff') === 'true'
   const isSuper = store.isSuperuser || localStorage.getItem('is_superuser') === 'true'
 
-  // 1. Verificar se a rota exige apenas autenticação comum
   if (to.meta.requiresAuth && !token) {
     return next({ name: 'login' })
   }
 
-  // 2. Verificar se a rota exige cargo de Admin/Staff
   if (to.meta.requiresAdmin) {
     if (!token) {
       next({ name: 'login' })
     } else if (isStaff || isSuper) {
-      next() // É admin, pode passar
+      next()
     } else {
-      next({ name: 'usuario-hub' }) // Não é admin, manda para o hub do usuário
+      next({ name: 'usuario-hub' })
     }
   } else {
-    next() // Rota pública (Login/Cadastro)
+    next()
   }
 })
 

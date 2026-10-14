@@ -83,16 +83,22 @@ const abrirMotorista = async (id) => {
   await freteStore.buscarDetalheMotorista(id);
   mostrarModalMotorista.value = true;
 };
+
+
 </script>
 
 <template>
   <div class="usuario-container">
+
+   
+
     <header class="usuario-header">
       <div>
         <h1>Meu Painel de Encomendas</h1>
         <p>Acompanhe e gerencie as suas solicitações de frete.</p>
       </div>
       <div class="header-btns">
+
         <LightButton label="Área do Motorista" @click="router.push('/motorista-hub')" />
         <DarkButton label="Solicitar Frete" @click="mostrarModalFreteCompleto = true" />
       </div>
@@ -154,16 +160,19 @@ const abrirMotorista = async (id) => {
 
     <!-- Modais -->
     <ModalDetalhesCarga
+      v-if="mostrarModalCarga"
       :isOpen="mostrarModalCarga"
       :carga="freteStore.detalheCarga"
       @close="mostrarModalCarga = false"
     />
     <ModalDetalhesMotorista
+      v-if="mostrarModalMotorista"
       :isOpen="mostrarModalMotorista"
       :motorista="freteStore.detalheMotorista"
       @close="mostrarModalMotorista = false"
     />
     <ModalCriarFreteCompleto
+      v-if="mostrarModalFreteCompleto"
       :isOpen="mostrarModalFreteCompleto"
       @close="() => { mostrarModalFreteCompleto = false; carregarDadosUsuario(); }"
     />
@@ -176,13 +185,28 @@ const abrirMotorista = async (id) => {
   background: #f2f2f2;
   min-height: 100vh;
   font-family: sans-serif;
-  max-width: 1400px;
-  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+  position: relative;
 }
+
+.logout-top-corner {
+  position: absolute;
+  top: 25px;
+  right: 40px;
+}
+
+.logout-top-corner :deep(button) {
+  padding: 5px 12px;
+  font-size: 0.75rem;
+  border-radius: 6px;
+}
+
 .usuario-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-top: 15px;
   margin-bottom: 28px;
   flex-wrap: wrap;
   gap: 20px;

@@ -139,7 +139,7 @@ const excluirFrete = async (id) => {
       </div>
       <div class="header-btns">
         <DarkButton label="Criar Novo Frete (Completo)" @click="mostrarModalFreteCompleto = true" />
-        <LightButton label="Voltar" @click="router.back()" />
+      
       </div>
     </header>
 
