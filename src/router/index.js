@@ -69,7 +69,17 @@ const routes = [
     name: 'motorista-hub',
     component: MotoristaHubView,
     meta: { requiresAuth: true }
-  }
+  },
+  {
+    path: '/pagamento/:id',
+    name: 'pagamento',
+    component: () => import('../views/PagamentoView.vue')
+  },
+  {
+    path: '/pagamento-retorno',
+    name: 'pagamento-retorno',
+    component: () => import('../views/PagamentoRetornoView.vue')
+  },
 ]
 
 const router = createRouter({

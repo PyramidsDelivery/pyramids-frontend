@@ -40,6 +40,49 @@ export const useFreteStore = defineStore('frete', {
       }
     },
 
+    async buscarFrete(id) {
+      try {
+        const response = await api.get(`fretes/${id}/`);
+        return response.data;
+      } catch (err) {
+        console.error("Erro ao buscar frete:", err.response?.data || err);
+        return null;
+      }
+    },
+
+        async iniciarPagamento(idFrete) {
+      try {
+        const response = await api.post(`fretes/${idFrete}/pagar/`);
+        return { success: true, checkoutUrl: response.data.checkout_url };
+      } catch (err) {
+        console.error("Erro ao iniciar pagamento:", err.response?.data || err);
+        return {
+          success: false,
+          message: err.response?.data?.detail || "Não foi possível iniciar o pagamento."
+        };
+      }
+    },
+
+    async confirmarPagamento(idFrete, paymentId = null) {
+      try {
+        const payload = paymentId ? { payment_id: paymentId } : {};
+        const response = await api.post(`fretes/${idFrete}/confirmar-pagamento/`, payload);
+
+        // Atualiza a lista local do cliente com o estado real do pagamento
+        await this.carregarFretes('cliente');
+        return {
+          success: true,
+          pago: response.data.pago,
+          statusMp: response.data.status_mp
+        };
+      } catch (err) {
+        console.error("Erro ao confirmar pagamento:", err.response?.data || err);
+        return {
+          success: false,
+          message: err.response?.data?.detail || "Não foi possível confirmar o pagamento."
+        };
+      }
+    },
     async buscarOpcoesCadastro() {
       this.loading = true;
       try {

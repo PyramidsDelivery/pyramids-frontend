@@ -2,10 +2,10 @@
 import { ref } from 'vue' 
 import { useRouter } from 'vue-router'
 import { useDataStore } from '../stores/useDataStore' 
-import logo from '../assets/logo.png'
 import LightButton from '../components/LightButton.vue'
 import DarkButton from '../components/DarkButton.vue'
 import BaseInput from '../components/BaseInput.vue'
+import PiramideAnimada from '../components/PiramideAnimada.vue'
 
 const router = useRouter()
 const dataStore = useDataStore()
@@ -43,7 +43,7 @@ async function realizarCadastro() {
   <div class="container">
     <div class="left">
       <div class="left-content">
-        <img :src="logo" alt="Logo" />
+        <PiramideAnimada :size="260" />
 
         <div class="left-text">
           <h1>Já tem uma conta?</h1>
@@ -77,7 +77,7 @@ async function realizarCadastro() {
   <!-- VERSÃO MOBILE -->
   <div class="mobile">
     <div class="top">
-      <img :src="logo" alt="Logo" />
+      <PiramideAnimada :size="200" />
     </div>
 
     <div class="mobile-content">
@@ -118,10 +118,6 @@ async function realizarCadastro() {
   width: 100%;
 }
 
-.logo {
-  width: 150px;
-}
-
 .container .left {
   background-color: var(--color-dark);
   display: flex;
@@ -135,12 +131,12 @@ async function realizarCadastro() {
 .left h1 {
   margin: 0;
   font-weight: bold;
-  line-height: 3rem;
-  font-size: 3rem;
+  line-height: 2.6rem;
+  font-size: 2.4rem;
 }
 
 .left p {
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   color: var(--color-light);
 }
 
@@ -148,19 +144,21 @@ async function realizarCadastro() {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  gap: 8px;
   height: 100%;
-  padding: 100px 0;
-  width: 50%;
-
-
+  padding: 30px 20px;
+  width: 75%;
+  max-width: 480px;
 }
 
 .left-content .left-text {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+  margin-bottom: 12px;
 }
 
 .container .right {
@@ -229,7 +227,6 @@ input:-webkit-autofill {
     margin: 0 auto;
   }
 
-  .left-content,
   .right-content {
     padding: 200px 0;
     max-width: 700px;
@@ -295,10 +292,6 @@ input:-webkit-autofill {
     justify-content: center;
   }
 
-  .top img {
-    width: 120px;
-  }
-
   .mobile-content {
     flex: 1;
     padding: 60px 20px;
@@ -327,14 +320,14 @@ input:-webkit-autofill {
     color: var(--color-dark);
   }
 
-.mobile-btn button {
-  width: 100%;
-  transition: transform 0.1s ease;
-}
+  .mobile-btn button {
+    width: 100%;
+    transition: transform 0.1s ease;
+  }
 
-.mobile-btn button:active {
-  transform: scale(0.96);
-}
+  .mobile-btn button:active {
+    transform: scale(0.96);
+  }
 
   .mobile-link {
     margin-top: auto;

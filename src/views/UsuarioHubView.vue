@@ -23,6 +23,12 @@ const buscaCarga = ref('');
 const filtroPrecoMax = ref('');
 const filtroData = ref('');
 
+const NOMES_PAGAMENTO = {
+  PIX: 'PIX',
+  CARTAO: 'Cartão',
+  BOLETO: 'Boleto'
+};
+
 const carregarDadosUsuario = async () => {
   await Promise.all([
     freteStore.carregarFretes('cliente'),
@@ -78,6 +84,10 @@ const fretesFiltrados = computed(() => {
 
 const getStatusClass = (s) =>
   `status-${s?.toLowerCase().replace(/\s+/g, "-") || "default"}`;
+
+const irParaPagamento = (idFrete) => {
+  router.push(`/pagamento/${idFrete}`);
+};
 
 const abrirCarga = async (cargaObjOrId) => {
   mostrarModalCarga.value = true;
@@ -187,6 +197,7 @@ function fazerLogout() {
               <th>Motorista</th>
               <th>Valor</th>
               <th>Status</th>
+              <th>Pagamento</th>
               <th>Data</th>
             </tr>
           </thead>
@@ -204,6 +215,12 @@ function fazerLogout() {
                 <span :class="['status-badge', getStatusClass(f.status)]">
                   {{ f.status }}
                 </span>
+              </td>
+              <td class="pagamento-cell">
+                <span v-if="f.status_pagamento === 'PAGO'" class="pago-badge">
+                  Pago<template v-if="f.forma_pagamento"> · {{ NOMES_PAGAMENTO[f.forma_pagamento] || f.forma_pagamento }}</template>
+                </span>
+                <DarkButton v-else label="Pagar" @click="irParaPagamento(f.id)" />
               </td>
               <td>{{ f.data_criacao ? new Date(f.data_criacao).toLocaleDateString('pt-BR') : '-' }}</td>
             </tr>
@@ -336,6 +353,25 @@ function fazerLogout() {
   background: #e3f2fd;
   color: #0d47a1;
 }
+
+/* Coluna de pagamento */
+.pagamento-cell :deep(button) {
+  width: auto;
+  padding: 6px 16px;
+  font-size: 0.8rem;
+  border-radius: 8px;
+}
+.pago-badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: #e8f5e9;
+  color: #1b5e20;
+  white-space: nowrap;
+}
+
 .empty-results {
   text-align: center;
   padding: 32px;
