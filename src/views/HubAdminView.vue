@@ -24,11 +24,7 @@ function fazerLogout() {
 
 <template>
   <div class="hub-container">
-    <!-- Botão de logout discreto no canto superior direito -->
-    <div class="logout-wrapper">
-      <DarkButton label="Sair" @click="fazerLogout" />
-    </div>
-
+ 
     <div class="hub-header">
       <h1>Painel de Controle</h1>
       <p>Selecione uma seção para continuar</p>

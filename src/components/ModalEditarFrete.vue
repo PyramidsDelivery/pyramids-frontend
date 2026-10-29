@@ -3,6 +3,7 @@ import { ref, watch, nextTick } from "vue";
 import DarkButton from "./DarkButton.vue";
 import LightButton from "./LightButton.vue";
 import { useFreteStore } from "../stores/freteStore";
+import api from "../services/api";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
@@ -14,11 +15,25 @@ const freteLocal = ref({});
 let mapa = null;
 let marcadorMotorista = null;
 
+// Função auxiliar para extrair o ID com segurança (seja objeto ou número)
+const extrairId = (campo) => {
+  if (!campo) return "";
+  return typeof campo === "object" ? campo.id : campo;
+};
+
 watch(
   () => props.isOpen,
   async (val) => {
-    if (val) {
-      freteLocal.value = { ...props.frete };
+    if (val && props.frete) {
+      // Normaliza os campos relacionais para conterem apenas os IDs numéricos
+      freteLocal.value = {
+        ...props.frete,
+        carga: extrairId(props.frete.carga),
+        motorista: extrairId(props.frete.motorista),
+        veiculo: extrairId(props.frete.veiculo),
+        rota: extrairId(props.frete.rota),
+        valor_frete: props.frete.valor_frete ? String(props.frete.valor_frete).replace(',', '.') : ''
+      };
       await nextTick();
       inicializarMapa();
       setTimeout(() => mapa?.invalidateSize(), 250);
@@ -100,15 +115,34 @@ const compartilharGps = () => {
 };
 
 const salvar = async () => {
-  const sucesso = await freteStore.atualizarFreteAdmin(
-    freteLocal.value.id,
-    freteLocal.value,
-  );
-  if (sucesso) {
+  try {
+    const valorTratado = parseFloat(String(freteLocal.value.valor_frete).replace(',', '.'));
+
+    const payload = {
+      carga: freteLocal.value.carga ? parseInt(freteLocal.value.carga) : null,
+      motorista: freteLocal.value.motorista ? parseInt(freteLocal.value.motorista) : null,
+      veiculo: freteLocal.value.veiculo ? parseInt(freteLocal.value.veiculo) : null,
+      rota: freteLocal.value.rota ? parseInt(freteLocal.value.rota) : null,
+      valor_frete: isNaN(valorTratado) ? 0 : valorTratado,
+      moeda: freteLocal.value.moeda || 'Reais',
+      status: freteLocal.value.status || 'Pendente',
+      ultima_localizacao: freteLocal.value.ultima_localizacao || null,
+      latitude: freteLocal.value.latitude ? parseFloat(freteLocal.value.latitude) : null,
+      longitude: freteLocal.value.longitude ? parseFloat(freteLocal.value.longitude) : null,
+    };
+
+    console.log("Payload enviado para edição:", payload);
+
+    const response = await api.patch(`fretes/${freteLocal.value.id}/`, payload);
+    console.log("Resposta de sucesso da API:", response.data);
+
+    await freteStore.carregarFretes('cliente');
+    
     emit("salvo");
     emit("close");
-  } else {
-    alert("Não foi possível salvar as alterações.");
+  } catch (err) {
+    console.error("Erro completo retornado pelo backend:", err.response?.data || err);
+    alert("Erro ao salvar: " + JSON.stringify(err.response?.data || err.message));
   }
 };
 </script>
@@ -121,42 +155,54 @@ const salvar = async () => {
       <div class="form-grid">
         <label>Carga</label>
         <select v-model="freteLocal.carga">
+          <option value="" disabled>Selecione a carga</option>
           <option v-for="c in opcoes?.cargas" :key="c.id" :value="c.id">
             {{ c.descricao }}
           </option>
         </select>
+
         <label>Motorista</label>
         <select v-model="freteLocal.motorista">
+          <option value="" disabled>Selecione o motorista</option>
           <option v-for="m in opcoes?.motoristas" :key="m.id" :value="m.id">
             {{ m.nome }}
           </option>
         </select>
+
         <label>Veículo</label>
         <select v-model="freteLocal.veiculo">
+          <option value="" disabled>Selecione o veículo</option>
           <option v-for="v in opcoes?.veiculos" :key="v.id" :value="v.id">
             {{ v.modelo }} ({{ v.placa }})
           </option>
         </select>
+
         <label>Rota</label>
         <select v-model="freteLocal.rota">
+          <option value="" disabled>Selecione a rota</option>
           <option v-for="r in opcoes?.rotas" :key="r.id" :value="r.id">
             {{ r.nome || `${r.ponto_inicial} → ${r.ponto_final}` }}
           </option>
         </select>
+
         <label>Moeda</label>
         <select v-model="freteLocal.moeda">
           <option value="Reais">Reais (R$)</option>
           <option value="Euro">Euro (€)</option>
           <option value="Dolar">Dólar ($)</option>
         </select>
+
         <label>Valor</label>
-        <input type="number" v-model="freteLocal.valor_frete" step="0.01" />
+        <input type="text" v-model="freteLocal.valor_frete" placeholder="0.00" />
+
         <label>Status</label>
         <select v-model="freteLocal.status">
           <option value="Pendente">Pendente</option>
           <option value="Em andamento">Em andamento</option>
           <option value="Entregue">Entregue</option>
+          <option value="Cancelado">Cancelado</option>
         </select>
+
         <label>Localização</label>
         <input type="text" v-model="freteLocal.ultima_localizacao" />
       </div>

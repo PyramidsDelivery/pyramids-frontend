@@ -23,6 +23,12 @@ const buscaCarga = ref('');
 const filtroPrecoMax = ref('');
 const filtroData = ref('');
 
+const NOMES_PAGAMENTO = {
+  PIX: 'PIX',
+  CARTAO: 'Cartão',
+  BOLETO: 'Boleto'
+};
+
 const carregarDadosUsuario = async () => {
   await Promise.all([
     freteStore.carregarFretes('cliente'),
@@ -42,14 +48,20 @@ onMounted(carregarDadosUsuario);
 
 const meusFretes = computed(() => freteStore.fretesCliente || []);
 
-const obterDescricaoCarga = (id) => {
-  const carga = listaCargasUser.value?.find(c => c.id === id);
-  return carga ? carga.descricao : `Carga #${id}`;
+const obterDescricaoCarga = (cargaObjOrId) => {
+  const id = typeof cargaObjOrId === 'object' ? cargaObjOrId?.id : cargaObjOrId;
+  const carga = listaCargasUser.value?.find(c => c.id === id || c.id === Number(id));
+  return carga ? carga.descricao : (typeof cargaObjOrId === 'object' ? cargaObjOrId?.descricao : `Carga #${id || 'N/D'}`);
 };
 
-const obterNomeMotorista = (id) =>
-  freteStore.opcoes?.motoristas?.find((m) => m.id === id)?.nome ||
-  (id ? `Motorista #${id}` : 'Não atribuído');
+const obterNomeMotorista = (motoristaObjOrId) => {
+  if (typeof motoristaObjOrId === 'string' && isNaN(Number(motoristaObjOrId))) {
+    return motoristaObjOrId;
+  }
+  const id = typeof motoristaObjOrId === 'object' ? motoristaObjOrId?.id : motoristaObjOrId;
+  const mot = freteStore.opcoes?.motoristas?.find((m) => m.id === id || m.id === Number(id) || m.nome === motoristaObjOrId);
+  return mot?.nome || (typeof motoristaObjOrId === 'object' ? motoristaObjOrId?.nome : (id ? `Motorista #${id}` : 'Não atribuído'));
+};
 
 // Filtro aplicado aos fretes encomendados
 const fretesFiltrados = computed(() => {
@@ -73,15 +85,66 @@ const fretesFiltrados = computed(() => {
 const getStatusClass = (s) =>
   `status-${s?.toLowerCase().replace(/\s+/g, "-") || "default"}`;
 
-const abrirCarga = async (id) => {
-  await freteStore.buscarDetalheCarga(id);
-  mostrarModalCarga.value = true;
+const irParaPagamento = (idFrete) => {
+  router.push(`/pagamento/${idFrete}`);
 };
 
-const abrirMotorista = async (id) => {
-  if (!id) return;
-  await freteStore.buscarDetalheMotorista(id);
+const abrirCarga = async (cargaObjOrId) => {
+  mostrarModalCarga.value = true;
+
+  // 1. Se já for um objeto completo com dados, usa diretamente
+  if (typeof cargaObjOrId === 'object' && cargaObjOrId !== null) {
+    freteStore.detalheCarga = cargaObjOrId;
+    return;
+  }
+
+  // 2. Procura nas cargas que já temos carregadas
+  const id = typeof cargaObjOrId === 'object' ? cargaObjOrId?.id : cargaObjOrId;
+  const cargaLocal = listaCargasUser.value?.find(c => c.id === id || c.id === Number(id));
+  if (cargaLocal) {
+    freteStore.detalheCarga = cargaLocal;
+  }
+
+  // 3. Tenta buscar detalhes atualizados na API se houver ID numérico
+  if (id && !isNaN(Number(id))) {
+    try {
+      await freteStore.buscarDetalheCarga(id);
+    } catch (err) {
+      console.error("Erro ao buscar detalhes da carga na API:", err);
+    }
+  }
+};
+
+const abrirMotorista = async (motoristaObjOrId) => {
   mostrarModalMotorista.value = true;
+
+  // 1. Se já for um objeto completo com dados
+  if (typeof motoristaObjOrId === 'object' && motoristaObjOrId !== null) {
+    freteStore.detalheMotorista = motoristaObjOrId;
+    return;
+  }
+
+  // 2. Procura nas opções de motoristas locais (por id ou nome, como "coco")
+  const motoristaLocal = freteStore.opcoes?.motoristas?.find(
+    m => m.id === motoristaObjOrId || m.nome === motoristaObjOrId || m.id === Number(motoristaObjOrId)
+  );
+
+  if (motoristaLocal) {
+    freteStore.detalheMotorista = motoristaLocal;
+  } else if (typeof motoristaObjOrId === 'string') {
+    // Se só tivermos a string (ex: "coco"), constrói um objeto fallback para não ficar em branco
+    freteStore.detalheMotorista = { nome: motoristaObjOrId };
+  }
+
+  // 3. Se houver um ID numérico, consulta o endpoint da API
+  const id = motoristaLocal?.id || (typeof motoristaObjOrId === 'object' ? motoristaObjOrId?.id : motoristaObjOrId);
+  if (id && !isNaN(Number(id))) {
+    try {
+      await freteStore.buscarDetalheMotorista(id);
+    } catch (err) {
+      console.error("Erro ao buscar detalhes do motorista na API:", err);
+    }
+  }
 };
 
 function fazerLogout() {
@@ -94,11 +157,6 @@ function fazerLogout() {
 
 <template>
   <div class="usuario-container">
-    <!-- Botão de Sair isolado no canto superior direito absoluto da página -->
-    <div class="logout-top-corner">
-      <DarkButton label="Sair" @click="fazerLogout" />
-    </div>
-
     <header class="usuario-header">
       <div>
         <h1>Meu Painel de Encomendas</h1>
@@ -139,6 +197,7 @@ function fazerLogout() {
               <th>Motorista</th>
               <th>Valor</th>
               <th>Status</th>
+              <th>Pagamento</th>
               <th>Data</th>
             </tr>
           </thead>
@@ -156,6 +215,12 @@ function fazerLogout() {
                 <span :class="['status-badge', getStatusClass(f.status)]">
                   {{ f.status }}
                 </span>
+              </td>
+              <td class="pagamento-cell">
+                <span v-if="f.status_pagamento === 'PAGO'" class="pago-badge">
+                  Pago<template v-if="f.forma_pagamento"> · {{ NOMES_PAGAMENTO[f.forma_pagamento] || f.forma_pagamento }}</template>
+                </span>
+                <DarkButton v-else label="Pagar" @click="irParaPagamento(f.id)" />
               </td>
               <td>{{ f.data_criacao ? new Date(f.data_criacao).toLocaleDateString('pt-BR') : '-' }}</td>
             </tr>
@@ -212,6 +277,7 @@ function fazerLogout() {
   display: flex;
   justify-content: space-between;
   align-items: center;
+
   margin-top: 20px; /* Garante que o header desça um pouco para não bater no botão de sair */
   margin-bottom: 28px;
   flex-wrap: wrap;
@@ -287,6 +353,25 @@ function fazerLogout() {
   background: #e3f2fd;
   color: #0d47a1;
 }
+
+/* Coluna de pagamento */
+.pagamento-cell :deep(button) {
+  width: auto;
+  padding: 6px 16px;
+  font-size: 0.8rem;
+  border-radius: 8px;
+}
+.pago-badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: #e8f5e9;
+  color: #1b5e20;
+  white-space: nowrap;
+}
+
 .empty-results {
   text-align: center;
   padding: 32px;
