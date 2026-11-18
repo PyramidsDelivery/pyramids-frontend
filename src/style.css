@@ -1192,3 +1192,43 @@ a { color: var(--pd-teal-dark); text-underline-offset: 3px; }
     padding-block: 20px;
   }
 }
+
+
+/* Auth navigation links stay at the bottom of the mobile screen. */
+@media (max-width: 768px) {
+  /* Login: expand the content column to fill available vertical space. */
+  #app .auth-login.container > .right {
+    flex: 1 0 auto;
+    min-height: 0;
+  }
+  #app .auth-login.container > .right .right-content {
+    flex: 1 0 auto;
+    justify-content: flex-start;
+    margin: 0;
+    min-height: 0;
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
+  }
+  #app .auth-login.container > .right .right-text {
+    margin-top: auto;
+  }
+  #app .auth-login.container > .right .mobile-link {
+    margin-top: auto;
+    padding-top: 26px;
+    margin-bottom: 0;
+  }
+
+  /* Registration: keep the existing form; anchor the login link last. */
+  #app .auth-cadastro + .mobile {
+    min-height: 100dvh;
+  }
+  #app .auth-cadastro + .mobile .mobile-content {
+    flex: 1 0 auto;
+    min-height: 0;
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
+  }
+  #app .auth-cadastro + .mobile .mobile-link {
+    margin-top: auto;
+    padding-top: 26px;
+    margin-bottom: 0;
+  }
+}
