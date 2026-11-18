@@ -233,3 +233,48 @@ a { color: var(--pd-teal-dark); text-underline-offset: 3px; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+
+/* Authentication panels: real cross-route sliding with the native View Transitions API.
+   Sign-up reverses the sides, preserving existing forms, handlers and requests. */
+@media (min-width: 769px) {
+  #app .auth-cadastro.container { flex-direction: row-reverse; }
+  #app .container > .left { view-transition-name: pd-brand-panel; }
+  #app .container > .right { view-transition-name: pd-form-panel; }
+  #app .auth-cadastro.container > .left { width: 40%; }
+  #app .auth-cadastro.container > .right { width: 60%; }
+  #app .auth-cadastro .right-content { padding-block: clamp(48px,7vh,100px); }
+}
+@media (max-width: 768px) {
+  #app .auth-cadastro.container { display: none; }
+  #app .auth-cadastro + .mobile { background: var(--pd-canvas); }
+  #app .auth-cadastro + .mobile .top {
+    background: radial-gradient(circle at 25% 18%,rgba(45,197,169,.3),transparent 40%),
+                linear-gradient(135deg,#102d3a,#0c4d4a);
+    view-transition-name: pd-mobile-brand;
+  }
+  #app .auth-cadastro + .mobile .mobile-content { padding: 42px 22px; gap: 28px; }
+  #app .auth-cadastro + .mobile .mobile-content .inputs { gap: 14px; }
+  #app .auth-cadastro + .mobile .mobile-content input { min-height: 50px; background: #fff; margin: 0; }
+  #app .auth-cadastro + .mobile .mobile-content h1 { color: var(--pd-ink); }
+  #app .auth-cadastro + .mobile .mobile-content p { color: var(--pd-muted); }
+}
+::view-transition-group(pd-brand-panel),
+::view-transition-group(pd-form-panel) {
+  animation-duration: 650ms;
+  animation-timing-function: cubic-bezier(.22,1,.36,1);
+}
+::view-transition-old(pd-brand-panel),
+::view-transition-new(pd-brand-panel),
+::view-transition-old(pd-form-panel),
+::view-transition-new(pd-form-panel) {
+  animation-duration: 650ms;
+  animation-timing-function: cubic-bezier(.22,1,.36,1);
+}
+::view-transition-old(root),
+::view-transition-new(root) { animation-duration: 380ms; }
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) { animation-duration: .01ms !important; }
+}
