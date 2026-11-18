@@ -112,10 +112,11 @@ const alterarSenha = async () => {
 
 <template>
   <div class="perfil-container">
-    <header class="perfil-header">
+    <header class="perfil-header pd-profile-hero">
       <div>
-        <h1>Meu Perfil</h1>
-        <p>Gerencie suas informações pessoais, foto e credenciais de acesso.</p>
+        <span class="pd-eyebrow">MINHA CONTA</span>
+        <h1>Seu espaço pessoal.</h1>
+        <p>Atualize seus dados, escolha uma foto e cuide da segurança da sua conta.</p>
       </div>
       <LightButton label="← Voltar ao Painel" @click="router.push('/usuario-hub')" />
     </header>
@@ -126,7 +127,9 @@ const alterarSenha = async () => {
     <div v-if="!loading" class="perfil-grid">
       <!-- Informações Pessoais -->
       <div class="card-seccao">
-        <h2>Informações Pessoais</h2>
+        <span class="pd-eyebrow">DADOS DA CONTA</span>
+        <h2>Informações pessoais</h2>
+        <p class="pd-card-description">Essas informações identificam seu perfil na plataforma.</p>
 
         <!-- Bloco da Foto de Perfil -->
         <div class="foto-perfil-wrapper">
@@ -170,7 +173,9 @@ const alterarSenha = async () => {
 
       <!-- Segurança e Senha -->
       <div class="card-seccao">
-        <h2>Segurança e Senha</h2>
+        <span class="pd-eyebrow">PRIVACIDADE</span>
+        <h2>Segurança e senha</h2>
+        <p class="pd-card-description">Mantenha sua senha atualizada para proteger seu acesso.</p>
         <form @submit.prevent="alterarSenha" class="form-perfil">
           <div class="input-group">
             <label>Senha Atual</label>

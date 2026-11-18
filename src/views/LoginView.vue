@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from "vue";
+import { ref, nextTick } from "vue";
 import { useRouter } from "vue-router";
 import { useDataStore } from "../stores/useDataStore";
 import LightButton from "../components/LightButton.vue";
@@ -26,13 +26,26 @@ async function realizarLogin() {
   );
 }
 
+
+// Apenas anima a navegação. O login e as chamadas à API não são alterados.
+async function navegarComTransicao(destino) {
+  if (!document.startViewTransition || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    return router.push(destino);
+  }
+  const transicao = document.startViewTransition(async () => {
+    await router.push(destino);
+    await nextTick();
+  });
+  return transicao.finished;
+}
+
 function irParaCadastro() {
-  router.push("/cadastro");
+  navegarComTransicao("/cadastro");
 }
 </script>
 
 <template>
-  <div class="container">
+  <div class="container auth-login">
     <div class="left">
       <div class="left-content">
         <PiramideAnimada :size="260" />

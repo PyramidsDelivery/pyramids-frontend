@@ -25,22 +25,27 @@ function fazerLogout() {
 <template>
   <div class="hub-container">
  
-    <div class="hub-header">
-      <h1>Painel de Controle</h1>
-      <p>Selecione uma seção para continuar</p>
+    <div class="hub-header pd-admin-intro">
+      <span class="pd-eyebrow">ÁREA ADMINISTRATIVA</span>
+      <h1>Organize a operação com clareza.</h1>
+      <p>Acesse os principais módulos de gestão do Pyramids Delivery.</p>
     </div>
 
     <div class="hub-grid">
-      <div class="hub-card" @click="verFretes">
-        <span class="hub-card-label">Gestão</span>
-        <h2>Fretes</h2>
-        <LightButton @click.stop="verFretes" label="Acessar"></LightButton>
+      <div class="hub-card pd-nav-card" @click="verFretes">
+        <span class="pd-nav-icon pd-nav-icon--teal" aria-hidden="true">↗</span>
+        <span class="hub-card-label">OPERAÇÃO</span>
+        <h2>Gestão de fretes</h2>
+        <p>Gerencie solicitações, cargas, motoristas e entregas.</p>
+        <LightButton @click.stop="verFretes" label="Acessar fretes" />
       </div>
 
-      <div class="hub-card" @click="verUsuarios">
-        <span class="hub-card-label">Gestão</span>
-        <h2>Usuários</h2>
-        <LightButton @click.stop="verUsuarios" label="Acessar"></LightButton>
+      <div class="hub-card pd-nav-card" @click="verUsuarios">
+        <span class="pd-nav-icon pd-nav-icon--blue" aria-hidden="true">◎</span>
+        <span class="hub-card-label">ACESSOS</span>
+        <h2>Gestão de usuários</h2>
+        <p>Consulte perfis, permissões e cadastros da plataforma.</p>
+        <LightButton @click.stop="verUsuarios" label="Acessar usuários" />
       </div>
     </div>
   </div>
