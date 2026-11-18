@@ -45,7 +45,7 @@ function irParaCadastro() {
 </script>
 
 <template>
-  <div class="container">
+  <div class="container auth-login">
     <div class="left">
       <div class="left-content">
         <PiramideAnimada :size="260" />
