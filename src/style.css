@@ -278,3 +278,273 @@ a { color: var(--pd-teal-dark); text-underline-offset: 3px; }
   ::view-transition-old(*),
   ::view-transition-new(*) { animation-duration: .01ms !important; }
 }
+
+
+/* ==========================================================
+   RESPONSIVE FOUNDATION | phones, tablets and narrow laptops
+   Layout-only overrides for existing scoped Vue components.
+   ========================================================== */
+#app :is(.usuario-container,.hub-container,.admin-container,.perfil-container,.admin-page,
+         .pagamento,.retorno) {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+#app :is(.usuario-container,.hub-container,.admin-container,.perfil-container,.admin-page) {
+  padding-inline: clamp(16px, 4vw, 52px);
+  padding-block: clamp(28px, 4vw, 52px);
+}
+#app :is(.usuario-header,.hub-header,.admin-header,.perfil-header,.header-actions) {
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: clamp(12px, 2.5vw, 22px);
+}
+#app :is(.usuario-header,.hub-header,.admin-header,.perfil-header,.header-actions) > * {
+  min-width: 0;
+}
+#app :is(.usuario-header,.hub-header,.admin-header,.perfil-header) h1 {
+  font-size: clamp(1.65rem, 4vw, 2.35rem);
+  line-height: 1.2;
+  margin-block: 0 8px;
+  text-wrap: pretty;
+}
+#app :is(.usuario-header,.hub-header,.admin-header,.perfil-header) p {
+  max-width: 65ch;
+  line-height: 1.55;
+  margin-top: 0;
+}
+#app .filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 12px;
+  min-width: 0;
+  padding: clamp(14px, 2.5vw, 20px);
+  border: 1px solid var(--pd-border);
+  box-shadow: 0 10px 30px rgba(18, 61, 78, .045);
+}
+#app .filter-bar > * {
+  flex: 1 1 190px;
+  width: auto;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 44px;
+}
+#app .perfil-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
+  gap: clamp(14px, 2.5vw, 24px);
+  width: 100%;
+  min-width: 0;
+}
+#app :is(.card-seccao,.form-container,.hub-card) { min-width: 0; }
+#app .card-seccao {
+  padding: clamp(18px, 3vw, 28px);
+  border: 1px solid var(--pd-border);
+  box-shadow: var(--pd-shadow);
+}
+#app .input-row { min-width: 0; }
+#app .input-row > * { min-width: 0; }
+#app .foto-perfil-wrapper { min-width: 0; flex-wrap: wrap; }
+#app .upload-controls { min-width: 0; }
+#app .file-name { overflow-wrap: anywhere; }
+#app .hub-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 245px), 1fr));
+}
+#app :is(.form-grid,.modal-corpo-grid,.row-group,.mapa-secao,.input-gps-group,.action-bottom-row) {
+  min-width: 0;
+}
+#app :is(.mapa-container,.mapa-container-modal,#mapa-modal) { max-width: 100%; }
+#app :is(.pagamento,.retorno) .card {
+  width: min(100%, 650px);
+  max-width: 100%;
+  margin-inline: auto;
+}
+#app :is(.pagamento,.retorno) .acoes { flex-wrap: wrap; gap: 10px; }
+
+/* Accessible modal layout with room for mobile browser chrome and keyboards */
+#app .modal-overlay {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  height: 100dvh;
+  max-height: 100dvh;
+  padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right))
+           max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  align-items: center;
+}
+#app .modal-overlay > :is(.modal-content,.modal-conteudo,.modal-conteudo-principal,
+                           .modal-container,.modal-box,.modal-card) {
+  box-sizing: border-box;
+  width: min(100%, 900px);
+  min-width: 0;
+  max-width: min(100%, 900px);
+  max-height: calc(100dvh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin: auto;
+  padding: clamp(18px, 3vw, 28px);
+  border-radius: clamp(14px, 3vw, 22px);
+  background: #fff;
+}
+#app .modal-topo { gap: 12px; min-width: 0; }
+#app .modal-topo h2 { min-width: 0; line-height: 1.3; }
+#app .btn-fechar {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+}
+#app .modal-overlay :is(.modal-actions,.modal-rodape) {
+  display: flex; flex-wrap: wrap; gap: 10px;
+}
+#app :is(.modal-corpo-grid,.details-grid) > * { min-width: 0; }
+#app :is(.modal-overlay,.form-container,.card-seccao) :is(input,select,textarea) {
+  max-width: 100%;
+}
+#app img, #app video, #app canvas { max-width: 100%; }
+#app img, #app video { height: auto; }
+#app .foto-detalhe { max-height: 300px; object-fit: contain; }
+
+/* Tables keep their columns and actions: horizontal scrolling rather than clipping */
+#app .table-wrapper {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+#app .table-wrapper > table { width: 100%; }
+#app .table-wrapper :is(th,td) { vertical-align: middle; }
+#app .table-wrapper .actions-cell { display: flex; gap: 8px; flex-wrap: wrap; }
+#app .table-wrapper :is(.status-badge,.badge,.pago-badge) { display: inline-block; white-space: nowrap; }
+
+/* Small laptops / tablets */
+@media (max-width: 1024px) {
+  #app :is(.usuario-header,.hub-header,.admin-header,.perfil-header) {
+    align-items: flex-start;
+  }
+  #app :is(.usuario-header,.hub-header,.admin-header,.perfil-header) > :first-child {
+    flex: 1 1 320px;
+  }
+  #app .table-wrapper > table { width: max-content; min-width: 100%; }
+  #app .table-wrapper :is(th,td) { padding: 13px 15px; }
+  #app .hub-section { min-width: 0; }
+  #app .mapa-container-modal { min-height: 240px; }
+}
+
+/* Phones: one column, readable forms and comfortable touch targets */
+@media (max-width: 640px) {
+  #app :is(.usuario-container,.hub-container,.admin-container,.perfil-container,.admin-page) {
+    padding: 72px 16px 32px;
+  }
+  #app :is(.usuario-header,.hub-header,.admin-header,.perfil-header,.header-actions) {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    margin-top: 0;
+    margin-bottom: 22px;
+    gap: 14px;
+  }
+  #app :is(.usuario-header,.hub-header,.admin-header,.perfil-header) > :first-child {
+    flex: 0 1 auto;
+  }
+  #app :is(.usuario-header,.hub-header,.admin-header,.perfil-header) h1 {
+    font-size: clamp(1.55rem, 6vw, 1.95rem);
+  }
+  #app :is(.header-btns,.hub-actions,.button-group,.btn-submit-wrapper) {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    gap: 10px;
+  }
+  #app :is(.header-btns,.hub-actions,.button-group,.btn-submit-wrapper) > *,
+  #app :is(.header-btns,.hub-actions,.button-group,.btn-submit-wrapper) button {
+    width: 100%;
+    max-width: 100%;
+    min-height: 44px;
+  }
+  #app .filter-bar { display: flex; flex-direction: column; gap: 10px; }
+  #app .filter-bar > * { flex: 0 0 auto; width: 100%; min-width: 0; }
+  #app :is(.section-container,.hub-card,.card-seccao) { max-width: 100%; }
+  #app .hub-card { padding: 18px 15px; }
+  #app .item-row-motorista { padding: 14px; }
+  #app :is(.input-row,.form-grid,.row-group,.modal-corpo-grid) {
+    grid-template-columns: minmax(0,1fr);
+  }
+  #app .form-grid { gap: 8px; }
+  #app .form-grid label:not(:first-child) { margin-top: 7px; }
+  #app .input-gps-group,
+  #app .action-bottom-row,
+  #app .busca-input-container {
+    display: flex; flex-direction: column; align-items: stretch;
+    gap: 10px; width: 100%;
+  }
+  #app .input-gps-group > *,
+  #app .action-bottom-row > *,
+  #app .busca-input-container > * {
+    width: 100%; min-width: 0; flex: 0 1 auto;
+  }
+  #app :is(.modal-actions,.modal-rodape) { flex-direction: column; align-items: stretch; }
+  #app :is(.modal-actions,.modal-rodape) > *,
+  #app :is(.modal-actions,.modal-rodape) button {
+    width: 100%;
+    min-height: 44px;
+  }
+  #app .modal-overlay > :is(.modal-content,.modal-conteudo,.modal-conteudo-principal,
+                             .modal-container,.modal-box,.modal-card) {
+    max-height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    padding: 20px 16px;
+  }
+  #app .table-wrapper > table {
+    min-width: max(640px, 100%);
+    width: max-content;
+  }
+  #app .table-wrapper :is(th,td) { padding: 12px; font-size: .83rem; }
+  #app .table-wrapper .actions-cell { flex-wrap: nowrap; }
+  #app :is(.pagamento,.retorno) { padding: 24px 16px; }
+  #app :is(.pagamento,.retorno) .card { padding: 22px 18px; }
+  #app .top-widget-container {
+    top: max(12px, env(safe-area-inset-top));
+    right: max(12px, env(safe-area-inset-right));
+    gap: 8px;
+  }
+  #app .btn-voltar-tiny { min-width: 44px; min-height: 40px; }
+  #app .top-perfil-widget { min-width: 40px; min-height: 40px; max-width: none; }
+  #app .top-perfil-widget .hover-text { display: none; }
+  #app .top-perfil-widget .avatar-circle { width: 32px; height: 32px; min-width: 32px; }
+  #app .top-perfil-widget:hover { max-width: none; }
+  #app .foto-perfil-wrapper { flex-direction: column; align-items: flex-start; }
+  #app .avatar-preview { flex-shrink: 0; }
+  #app .container > .right .right-content {
+    width: 100%;
+    height: auto;
+    padding: 34px 20px 40px;
+    gap: 22px;
+  }
+  #app .container > .right .inputs { gap: 12px; }
+  #app .container > .right .right-text { gap: 8px; }
+  #app .container > .right h1 { font-size: clamp(1.8rem, 7vw, 2.25rem); }
+  #app .auth-cadastro + .mobile .mobile-content { gap: 23px; padding: 32px 20px; }
+  #app .auth-cadastro + .mobile .mobile-content .inputs { gap: 12px; }
+  #app .auth-cadastro + .mobile .mobile-content .mobile-link { margin-top: 12px; }
+}
+
+/* Prevent iOS auto-zoom on fields, while retaining user zoom */
+@media (max-width: 768px) {
+  #app :is(input,select,textarea) { font-size: max(16px, 1rem); }
+}
+/* Landscape phones: scroll forms/modals, don't force viewport height */
+@media (max-height: 540px) and (orientation: landscape) {
+  #app .container:has(> .left > .left-content) { min-height: 540px; }
+  #app .modal-overlay { align-items: flex-start; }
+}
