@@ -157,10 +157,11 @@ function fazerLogout() {
 
 <template>
   <div class="usuario-container">
-    <header class="usuario-header">
-      <div>
-        <h1>Meu Painel de Encomendas</h1>
-        <p>Acompanhe e gerencie as suas solicitações de frete.</p>
+    <header class="usuario-header pd-hero pd-hero--customer">
+      <div class="pd-hero-copy">
+        <span class="pd-eyebrow">CENTRAL DE ENCOMENDAS</span>
+        <h1>Suas entregas, em um só lugar.</h1>
+        <p>Acompanhe cada frete, consulte detalhes e mantenha suas encomendas sob controle.</p>
       </div>
       <div class="header-btns">
         <LightButton label="Área do Motorista" @click="router.push('/motorista-hub')" />
@@ -168,6 +169,13 @@ function fazerLogout() {
       </div>
     </header>
 
+    <div class="pd-overview" aria-label="Resumo das encomendas">
+      <div class="pd-stat"><span class="pd-stat-icon" aria-hidden="true">▣</span><span class="pd-stat-label">Total de fretes</span><strong>{{ meusFretes.length }}</strong><small>Solicitações registradas</small></div>
+      <div class="pd-stat"><span class="pd-stat-icon" aria-hidden="true">↗</span><span class="pd-stat-label">Em andamento</span><strong>{{ meusFretes.filter(f => ['EM_TRANSITO', 'ACEITO'].includes(f.status)).length }}</strong><small>Entregas em progresso</small></div>
+      <div class="pd-stat"><span class="pd-stat-icon" aria-hidden="true">✓</span><span class="pd-stat-label">Concluídos</span><strong>{{ meusFretes.filter(f => f.status === 'ENTREGUE').length }}</strong><small>Fretes entregues</small></div>
+    </div>
+
+    <div class="pd-section-heading"><div><span class="pd-eyebrow">CONSULTA RÁPIDA</span><h2>Encontre um frete</h2></div><span class="pd-section-hint">Filtre por carga, valor ou data</span></div>
     <!-- Barra de Filtros Unificada com o design do Admin -->
     <BarraFiltrosFretes
       v-model:buscaCarga="buscaCarga"
@@ -183,7 +191,7 @@ function fazerLogout() {
 
     <!-- Secção de Fretes Encomendados -->
     <div class="section-container">
-      <h2>Meus Fretes Encomendados</h2>
+      <div class="pd-section-heading"><div><span class="pd-eyebrow">HISTÓRICO</span><h2>Meus fretes encomendados</h2></div><span class="pd-section-hint">{{ fretesFiltrados.length }} resultado(s)</span></div>
       <div v-if="freteStore.loading" class="loader-container">
         <div class="loader"></div>
       </div>

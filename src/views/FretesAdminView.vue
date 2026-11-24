@@ -132,10 +132,11 @@ const excluirFrete = async (id) => {
 
 <template>
   <div class="admin-container">
-    <header class="admin-header">
-      <div>
-        <h1>Administração de Fretes</h1>
-        <p>Gerencie cargas e acompanhe os status em tempo real.</p>
+    <header class="admin-header pd-hero pd-hero--operations">
+      <div class="pd-hero-copy">
+        <span class="pd-eyebrow">GESTÃO DE OPERAÇÕES</span>
+        <h1>Fretes sob controle.</h1>
+        <p>Gerencie cargas, acompanhe entregas e mantenha tudo organizado.</p>
       </div>
       <div class="header-btns">
 
@@ -145,6 +146,7 @@ const excluirFrete = async (id) => {
       </div>
     </header>
 
+    <div class="pd-section-heading"><div><span class="pd-eyebrow">BUSCA E FILTROS</span><h2>Explore os fretes</h2></div><span class="pd-section-hint">{{ fretesFiltrados.length }} resultado(s)</span></div>
     <BarraFiltrosFretes
       v-model:buscaCarga="buscaCarga"
       v-model:filtroUsuario="filtroUsuario"

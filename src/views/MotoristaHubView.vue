@@ -151,19 +151,25 @@ const salvarAtualizacaoMotorista = async (freteId) => {
 
 <template>
   <div class="hub-container">
-    <header class="hub-header">
-      <div class="header-info">
-        <h1>Painel do Motorista</h1>
-        <p>Gerencie solicitações, acompanhe rotas e atualize suas entregas.</p>
+    <header class="hub-header pd-hero pd-hero--driver">
+      <div class="header-info pd-hero-copy">
+        <span class="pd-eyebrow">CENTRAL DO MOTORISTA</span>
+        <h1>Seu próximo destino começa aqui.</h1>
+        <p>Analise novas solicitações, acompanhe rotas e atualize o andamento das entregas.</p>
       </div>
       <div class="hub-actions">
         <LightButton label="← Voltar para Minhas Encomendas" @click="router.push('/usuario-hub')" class="btn-compacto" />
       </div>
     </header>
 
-    <div class="hub-section">
+    <div class="pd-overview" aria-label="Resumo das entregas">
+      <div class="pd-stat"><span class="pd-stat-icon" aria-hidden="true">◷</span><span class="pd-stat-label">Aguardando resposta</span><strong>{{ fretesPendentes.length }}</strong><small>Novas solicitações</small></div>
+      <div class="pd-stat"><span class="pd-stat-icon" aria-hidden="true">↗</span><span class="pd-stat-label">Em andamento</span><strong>{{ fretesEmAndamento.length }}</strong><small>Fretes ativos</small></div>
+    </div>
+
+    <div class="hub-section pd-driver-section">
       <section class="hub-card" v-if="fretesPendentes.length > 0">
-        <h2>Novas Solicitações de Frete (Aguardando Resposta)</h2>
+        <div class="pd-section-heading"><div><span class="pd-eyebrow">NOVAS OPORTUNIDADES</span><h2>Solicitações pendentes</h2></div><span class="pd-section-hint">Revise antes de aceitar</span></div>
         <ul class="item-list">
           <li v-for="frete in fretesPendentes" :key="frete.id" class="item-row-motorista pending-card">
             <div class="frete-info">
@@ -190,8 +196,8 @@ const salvarAtualizacaoMotorista = async (freteId) => {
         </ul>
       </section>
 
-      <section class="hub-card" style="margin-top: 25px;">
-        <h2>Meu Frete Ativo / Em Andamento</h2>
+      <section class="hub-card pd-active-freights">
+        <div class="pd-section-heading"><div><span class="pd-eyebrow">ACOMPANHAMENTO</span><h2>Fretes em andamento</h2></div><span class="pd-section-hint">Localização e status</span></div>
         <div v-if="freteStore.loading" class="mini-loader">Carregando entregas...</div>
         <div v-else-if="fretesEmAndamento.length === 0" class="empty-state">
           Nenhum frete ativo no momento. Podes receber novas solicitações.
